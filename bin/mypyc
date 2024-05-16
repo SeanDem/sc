@@ -1,5 +1,5 @@
 #!/bin/sh
-'''exec' "/Users/sean/Dev/Algo Trading Dev/sc/bin/python3.12" "$0" "$@"
+'''exec' "/Users/sean/dev/algo/sc/bin/python3.12" "$0" "$@"
 ' '''
 # -*- coding: utf-8 -*-
 import re
