@@ -1,41 +1,56 @@
 from dataclasses import dataclass, field
-from typing import Optional
+from typing import List, Optional
 from datetime import datetime
 from enum import Enum, auto
 
 
 class OrderStatus(Enum):
-    PENDING = auto()
-    OPEN = auto()
-    FILLED = auto()
-    CANCELLED = auto()
-    EXPIRED = auto()
-    FAILED = auto()
+    PENDING = "PENDING"
+    OPEN = "OPEN"
+    FILLED = "FILLED"
+    CANCELLED = "CANCELLED"
+    EXPIRED = "EXPIRED"
+    FAILED = "FAILED"
 
 
 class OrderSide(Enum):
-    BUY = auto()
-    SELL = auto()
+    BUY = "BUY"
+    SELL = "SELL"
 
 
 class OrderType(Enum):
-    LIMIT = auto()
-    MARKET = auto()
-    STOP_LIMIT = auto()
+    LIMIT = "LIMIT"
+    MARKET = "MARKET"
+    STOP_LIMIT = "STOP_LIMIT"
 
 
 @dataclass
 class OrderEvent:
-    order_id: str  # Unique identifier of the order
-    client_order_id: str  # Unique identifier specified by the client
-    cumulative_quantity: float  # Amount the order is filled, in base currency
-    leaves_quantity: float  # Amount remaining in the currency the order was placed
-    avg_price: float  # Average filled price of the order so far
-    total_fees: float  # Commission paid for the order
-    status: OrderStatus  # Current status of the order
-    product_id: str  # The product ID for which this order was placed
-    creation_time: datetime  # When the order was placed
-    order_side: OrderSide  # Side of the order: BUY or SELL
-    order_type: OrderType  # Type of order: Limit, Market, Stop Limit
-    limit_price: Optional[float] = 0  # Limit price, if applicable
-    stop_price: Optional[float] = 0  # Stop price, if applicable
+    order_id: str
+    client_order_id: str
+    cumulative_quantity: str
+    leaves_quantity: str
+    avg_price: str
+    total_fees: str
+    status: str
+    product_id: str
+    creation_time: str
+    order_side: str
+    order_type: str
+    limit_price: Optional[str] = "0"
+    stop_price: Optional[str] = "0"
+
+
+@dataclass
+class Event:
+    type: Optional[str]
+    orders: Optional[List[OrderEvent]] = field(default_factory=list)
+
+
+@dataclass
+class CB_Message:
+    channel: str
+    client_id: str
+    timestamp: str
+    sequence_num: int
+    events: List[Event]

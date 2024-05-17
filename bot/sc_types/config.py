@@ -1,7 +1,5 @@
 from dataclasses import dataclass
 from enum import Enum
-from typing import Dict, List, Optional
-
 from .event_types import OrderSide
 
 
@@ -15,13 +13,9 @@ class CurrencyPair(Enum):
     PYUSD_USDC = "PYUSD-USDC"
 
 
-class OrderType(Enum):
-    BUY = "BUY"
-    SELL = "SELL"
-
-
 @dataclass
-class Order:
+class QueueOrder:
     pair: CurrencyPair
     price: str
+    qty: str
     type: OrderSide

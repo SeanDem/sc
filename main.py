@@ -1,5 +1,4 @@
 import time
-
 from bot.trading_bot import TradingBot
 
 

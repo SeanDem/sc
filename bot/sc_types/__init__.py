@@ -4,4 +4,4 @@ from .portfolio_types import PortfolioBreakdown
 from .order_types import OrderResponse
 from .token_types import Product
 from .config import CurrencyPair
-from .config import Order
+from .config import QueueOrder

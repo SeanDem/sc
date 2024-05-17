@@ -1,42 +1,38 @@
+from collections import defaultdict
+from typing import Dict, Optional
 from ..sc_types.event_types import OrderSide
 from ..sc_types.config import CurrencyPair
-from ..sc_types import Order
+from ..sc_types import QueueOrder
 from queue import Queue
 
 
-class OrderQueue:
+class OrderBook:
     def __init__(self) -> None:
-        self.buyQueue = Queue()
-        self.sellQueue = Queue()
+        self.orders: Dict[CurrencyPair, Dict[OrderSide, Dict[str, str]]] = defaultdict(
+            lambda: defaultdict(lambda: defaultdict(lambda: "0"))
+        )
 
-    def addSalesConfig(self, pair: CurrencyPair, sell_prices: list) -> None:
-        for price in sell_prices:
-            self.sellQueue.put(Order(pair, price, OrderSide.SELL))
+    def get_order_amount(self, pair: CurrencyPair, side: OrderSide, price: str) -> str:
+        """Get the order quantity for a given pair, side, and price."""
+        return self.orders[pair][side][price]
 
-    def addBuysConfig(self, pair: CurrencyPair, buy_prices: list) -> None:
-        for price in buy_prices:
-            self.buyQueue.put(Order(pair, price, OrderSide.BUY))
-
-    def addPairConfig(
-        self, pair: CurrencyPair, buy_prices: list, sell_prices: list
+    def update_order(
+        self, pair: CurrencyPair, side: OrderSide, price: str, amount: str
     ) -> None:
-        self.addBuysConfig(pair, buy_prices)
-        self.addSalesConfig(pair, sell_prices)
+        """Update the order quantity for a given pair, side, and price."""
+        self.orders[pair][side][price] = amount
 
-    def getBuyOrder(self) -> Order:
-        return self.buyQueue.get()
+    def get_lowest_price(self, pair: CurrencyPair, side: OrderSide) -> str:
+        """Get the price for the given pair and side that has the smallest quantity."""
+        if self.orders[pair][side]:
+            return min(self.orders[pair][side], key=lambda k: abs(float(k) - 1))
+        return "1.001"
 
-    def getSellOrder(self) -> Order:
-        return self.sellQueue.get()
-
-    def putBuyOrder(self, order: Order) -> None:
-        self.buyQueue.put(order)
-
-    def putSellOrder(self, order: Order) -> None:
-        self.sellQueue.put(order)
-
-    def getBuyQueueSize(self) -> int:
-        return self.buyQueue.qsize()
-
-    def getSellQueueSize(self) -> int:
-        return self.sellQueue.qsize()
+    def display_orders(self) -> None:
+        """Helper function to display the order book nicely formatted."""
+        for pair, sides in self.orders.items():
+            print(f"{pair}:")
+            for side, prices in sides.items():
+                print(f"  {side}:")
+                for price, qty in sorted(prices.items(), key=lambda x: float(x[0])):
+                    print(f"    Price: {price}, Quantity: {qty}")
