@@ -9,19 +9,19 @@ class OrderQueue:
         self.buyQueue = Queue()
         self.sellQueue = Queue()
 
-    def addSalesConfig(self, token: CurrencyPair, sell_prices: list) -> None:
+    def addSalesConfig(self, pair: CurrencyPair, sell_prices: list) -> None:
         for price in sell_prices:
-            self.sellQueue.put(Order(token, price, OrderSide.SELL))
+            self.sellQueue.put(Order(pair, price, OrderSide.SELL))
 
-    def addBuysConfig(self, token: CurrencyPair, buy_prices: list) -> None:
+    def addBuysConfig(self, pair: CurrencyPair, buy_prices: list) -> None:
         for price in buy_prices:
-            self.buyQueue.put(Order(token, price, OrderSide.BUY))
+            self.buyQueue.put(Order(pair, price, OrderSide.BUY))
 
-    def addTokenConfig(
-        self, token: CurrencyPair, buy_prices: list, sell_prices: list
+    def addPairConfig(
+        self, pair: CurrencyPair, buy_prices: list, sell_prices: list
     ) -> None:
-        self.addBuysConfig(token, buy_prices)
-        self.addSalesConfig(token, sell_prices)
+        self.addBuysConfig(pair, buy_prices)
+        self.addSalesConfig(pair, sell_prices)
 
     def getBuyOrder(self) -> Order:
         return self.buyQueue.get()
@@ -34,3 +34,9 @@ class OrderQueue:
 
     def putSellOrder(self, order: Order) -> None:
         self.sellQueue.put(order)
+
+    def getBuyQueueSize(self) -> int:
+        return self.buyQueue.qsize()
+
+    def getSellQueueSize(self) -> int:
+        return self.sellQueue.qsize()

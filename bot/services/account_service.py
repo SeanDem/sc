@@ -32,3 +32,8 @@ class AccountService:
 
     def get_usdc_available_to_trade(self) -> float:
         return self.get_available_to_trade("USDC")
+
+    def get_acount_balance_temp(self):
+        return self.get_usdc_available_to_trade() + self.get_token_available_to_trade(
+            CurrencyPair.DAI_USDC
+        )

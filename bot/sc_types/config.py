@@ -22,6 +22,6 @@ class OrderType(Enum):
 
 @dataclass
 class Order:
-    token: CurrencyPair
-    price: float
+    pair: CurrencyPair
+    price: str
     type: OrderSide
