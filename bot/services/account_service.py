@@ -1,12 +1,11 @@
 from dacite import from_dict
-from bot.stypes.config import BotConfig
-from ..stypes import PortfolioBreakdown
 from ..clients import REST_CLIENT
+from ..sc_types import PortfolioBreakdown
+from ..sc_types import CurrencyPair
 
 
 class AccountService:
-    def __init__(self, config: BotConfig):
-        self.config = config
+    def __init__(self):
         self.api_client = REST_CLIENT
         self.uuid = "5218e553-84ec-54ec-a572-df8243f3d5ba"
 
@@ -24,8 +23,11 @@ class AccountService:
                 available_to_trade += position.available_to_trade_fiat
         return available_to_trade
 
-    def get_token_available_to_trade(self) -> float:
-        currency = self.config.pair.value.split("-")[0]
+    def get_token_available_to_trade(
+        self,
+        pair: CurrencyPair,
+    ) -> float:
+        currency = pair.value.split("-")[0]
         return self.get_available_to_trade(currency)
 
     def get_usdc_available_to_trade(self) -> float:

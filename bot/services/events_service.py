@@ -13,6 +13,7 @@ class EventService(WSClient):
             on_close=self.on_close,
             on_open=self.on_open,
             on_message=self.on_message,
+            verbose=True,
         )
 
     def on_open(self) -> None:
@@ -21,10 +22,8 @@ class EventService(WSClient):
 
     def on_message(self, msg) -> None:
         self.message_count += 1
-        if (
-            msg["type"] == "match" and msg["side"] == "buy"
-        ):  # Filter messages for buy events
-            print("Buy Event:", msg)
+        print("Buy Event:", msg)
+        print(f"Message count: {self.message_count}")
 
     def on_close(self) -> None:
         print("WebSocket is now closed!")

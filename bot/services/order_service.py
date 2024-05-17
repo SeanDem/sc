@@ -2,48 +2,54 @@ import uuid
 from dacite import from_dict
 from decimal import Decimal, ROUND_DOWN
 from coinbase.rest import RESTClient
-from ..stypes.config import BotConfig
-from ..stypes.order_types import OrderResponse
+from ..sc_types.order_types import OrderResponse
 from ..clients import REST_CLIENT
+from ..sc_types import CurrencyPair
 
 
 class OrderService:
     api_client: RESTClient = REST_CLIENT
 
-    def __init__(self, config: BotConfig):
-        self.config = config
+    def __init__(self) -> None:
+        self.precision = 4
 
     def generate_order_id(self) -> str:
         return str(uuid.uuid4())
 
     def adjust_precision(self, size: float) -> str:
-        return str(
-            Decimal(size).quantize(
-                Decimal("1." + "0" * self.config.precision), rounding=ROUND_DOWN
-            )
-        )
+        return str(Decimal(size).quantize(Decimal("1." + "0" * 4), rounding=ROUND_DOWN))
 
-    def buyOrder(self, size: float):
+    def buyOrder(
+        self,
+        pair: CurrencyPair,
+        size: float,
+        price: str,
+    ):
         orderId = self.generate_order_id()
         adjusted_size = self.adjust_precision(size)
         response = self.api_client.limit_order_gtc_buy(
             client_order_id=orderId,
-            product_id=self.config.pair.value,
+            product_id=pair.value,
             base_size=adjusted_size,
-            limit_price=self.config.target_buy_price,
+            limit_price=price,
         )
         res: OrderResponse = from_dict(data_class=OrderResponse, data=response)
         self.print_order_status(res)
         return res
 
-    def sellOrder(self, size: float):
+    def sellOrder(
+        self,
+        pair: CurrencyPair,
+        size: float,
+        price: str,
+    ):
         orderId = self.generate_order_id()
         adjusted_size = self.adjust_precision(size)
         response = self.api_client.limit_order_gtc_sell(
             client_order_id=orderId,
-            product_id=self.config.pair.value,
+            product_id=pair.value,
             base_size=adjusted_size,
-            limit_price=self.config.target_sell_price,
+            limit_price=price,
         )
         res: OrderResponse = from_dict(data_class=OrderResponse, data=response)
         self.print_order_status(res)
