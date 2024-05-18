@@ -58,7 +58,7 @@ class TradingBot:
         )
         print(f"USDC: {usdc_amt}")
         print(f"{CurrencyPair.DAI_USDC.value}: {token_amt}")
-        buy_prices = self.generate_order_distribution(0.9871, 0.9987, 10)
+        buy_prices = self.generate_order_distribution(0.9871, 0.9989, 8)
         buy_qty: str = "{:.4f}".format(usdc_amt / len(buy_prices))
         for price in buy_prices:
             time.sleep(1)
@@ -67,7 +67,7 @@ class TradingBot:
                 CurrencyPair.DAI_USDC, OrderSide.BUY, price, amount=buy_qty
             )
 
-        sell_prices = [".9996", ".9999", "1.0006"]
+        sell_prices = [".9999", "1.0006"]
         sell_qty: str = "{:.4f}".format(token_amt / len(sell_prices))
         for price in sell_prices:
             time.sleep(1)
