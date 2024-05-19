@@ -1,6 +1,5 @@
 from dacite import from_dict
-from sc_types import PortfolioBreakdown
-from sc_types.config import CurrencyPair
+from sc_types import *
 from coinbase.rest import RESTClient
 
 

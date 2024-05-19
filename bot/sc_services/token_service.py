@@ -1,7 +1,6 @@
 from coinbase.rest import RESTClient
 from dacite import from_dict
-from sc_types.token_types import Product
-from sc_types.config import CurrencyPair
+from sc_types import *
 
 
 class TokenService:

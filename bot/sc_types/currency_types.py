@@ -1,6 +1,5 @@
 from enum import Enum
 
-
 class CurrencyPair(Enum):
     DAI_USDC = "DAI-USDC"
     GYEN_USDC = "GYEN-USDC"

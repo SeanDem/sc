@@ -1,6 +1,5 @@
 from collections import defaultdict
 from typing import Dict
-from sc_types.config import CurrencyPair
 from sc_types import *
 
 

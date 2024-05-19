@@ -1,25 +1,5 @@
 from dataclasses import dataclass, field
 from typing import List, Optional
-from enum import Enum
-
-class OrderStatus(Enum):
-    PENDING = "PENDING"
-    OPEN = "OPEN"
-    FILLED = "FILLED"
-    CANCELLED = "CANCELLED"
-    EXPIRED = "EXPIRED"
-    FAILED = "FAILED"
-
-
-class OrderSide(Enum):
-    BUY = "BUY"
-    SELL = "SELL"
-
-
-class OrderType(Enum):
-    LIMIT = "LIMIT"
-    MARKET = "MARKET"
-    STOP_LIMIT = "STOP_LIMIT"
 
 
 @dataclass
@@ -46,7 +26,7 @@ class Event:
 
 
 @dataclass
-class CB_Message:
+class WS_Message:
     channel: str
     client_id: str
     timestamp: str

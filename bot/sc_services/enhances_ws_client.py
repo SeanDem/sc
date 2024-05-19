@@ -36,7 +36,7 @@ class EnhancedWSClient(WSClient):
             self.close()
 
     def on_message(self, msg: str) -> None:
-        message = from_dict(CB_Message, json.loads(msg))
+        message = from_dict(WS_Message, json.loads(msg))
         event = message.events[0]
         if event.type == "snapshot":
             return
