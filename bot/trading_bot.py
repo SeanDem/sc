@@ -2,17 +2,11 @@ import json
 import threading
 import time
 from dacite import from_dict
-
-from sc_types.event_types import CB_Message, OrderEvent, OrderSide
-from sc_types.list_orders import AllOrdersList
-from services.order_queue import OrderBook
+from .sc_services.order_book import OrderBook
+from sc_types import *
+from sc_services import *
 from keys import api_key, api_secret
-from services.token_service import TokenService
-from services.limit_order_service import OrderService
-from services.account_service import AccountService
-from sc_types.config import CurrencyPair
 from coinbase.websocket import WSClient
-from sc_types.config import QueueOrder
 from coinbase.rest import RESTClient
 from keys import api_key, api_secret
 
