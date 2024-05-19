@@ -4,8 +4,9 @@ lib/
 bin/
 __pycache__/
 .DS_store
-.cfg
+*.cfg
 .vscode/
+
 # C extensions
 *.so
 
