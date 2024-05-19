@@ -1,1 +1,1 @@
-from .trading_bot import TradingBot
+from trading_bot import TradingBot

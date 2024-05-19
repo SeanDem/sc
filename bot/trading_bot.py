@@ -3,26 +3,28 @@ import threading
 import time
 from dacite import from_dict
 
-from .sc_types.event_types import CB_Message, OrderEvent, OrderSide
-
-from .sc_types.list_orders import AllOrdersList
-from .services.order_queue import OrderBook
-from .keys import api_key, api_secret
-from .clients import REST_CLIENT
-from .services.token_service import TokenService
-from .services.limit_order_service import OrderService
-from .services.account_service import AccountService
-from .sc_types.config import CurrencyPair
+from sc_types.event_types import CB_Message, OrderEvent, OrderSide
+from sc_types.list_orders import AllOrdersList
+from services.order_queue import OrderBook
+from keys import api_key, api_secret
+from services.token_service import TokenService
+from services.limit_order_service import OrderService
+from services.account_service import AccountService
+from sc_types.config import CurrencyPair
 from coinbase.websocket import WSClient
-from .sc_types.config import QueueOrder
+from sc_types.config import QueueOrder
+from coinbase.rest import RESTClient
+from keys import api_key, api_secret
 
 
 class TradingBot:
+    reconnect_attempts = 0
+
     def __init__(self) -> None:
-        self.api_client = REST_CLIENT
-        self.accountService = AccountService()
-        self.orderService = OrderService(self.accountService)
-        self.tokenService = TokenService()
+        self.api_client = RESTClient(api_key=api_key, api_secret=api_secret)
+        self.accountService = AccountService(self.api_client)
+        self.orderService = OrderService(self.api_client, self.accountService)
+        self.tokenService = TokenService(self.api_client)
         self.eventService = WSClient(
             api_key=api_key,
             api_secret=api_secret,
@@ -141,7 +143,7 @@ class TradingBot:
         )
 
     def on_close(self) -> None:
-        print("WebSocket is now closed!")
+        print("WebSocket closed")
 
     def cancel_all_orders(self) -> None:
         data = self.api_client.list_orders()

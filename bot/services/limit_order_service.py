@@ -2,16 +2,14 @@ import uuid
 from dacite import from_dict
 from decimal import Decimal, ROUND_DOWN
 from coinbase.rest import RESTClient
-from ..sc_types.order_types import OrderResponse
-from ..clients import REST_CLIENT
-from ..sc_types import CurrencyPair
-from .account_service import AccountService
+from sc_types.order_types import OrderResponse
+from sc_types import CurrencyPair
+from account_service import AccountService
 
 
 class OrderService:
-    api_client: RESTClient = REST_CLIENT
-
-    def __init__(self, accountService: AccountService) -> None:
+    def __init__(self, api_client: RESTClient, accountService: AccountService) -> None:
+        self.api_client: RESTClient = api_client
         self.precision = 4
         self.accountService = accountService
 

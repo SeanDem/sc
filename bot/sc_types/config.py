@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from enum import Enum
-from .event_types import OrderSide
+from event_types import OrderSide
 
 
 class CurrencyPair(Enum):

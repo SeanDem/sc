@@ -1,9 +1,7 @@
 from collections import defaultdict
-from typing import Dict, Optional
-from ..sc_types.event_types import OrderSide
-from ..sc_types.config import CurrencyPair
-from ..sc_types import QueueOrder
-from queue import Queue
+from typing import Dict
+from sc_types.event_types import OrderSide
+from sc_types.config import CurrencyPair
 
 
 class OrderBook:

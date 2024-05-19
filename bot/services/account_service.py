@@ -1,12 +1,12 @@
 from dacite import from_dict
-from ..clients import REST_CLIENT
-from ..sc_types import PortfolioBreakdown
-from ..sc_types import CurrencyPair
+from sc_types import PortfolioBreakdown
+from sc_types import CurrencyPair
+from coinbase.rest import RESTClient
 
 
 class AccountService:
-    def __init__(self):
-        self.api_client = REST_CLIENT
+    def __init__(self, api_client: RESTClient) -> None:
+        self.api_client = api_client
         self.uuid = "5218e553-84ec-54ec-a572-df8243f3d5ba"
 
     def getPortfolioBreakdown(self) -> PortfolioBreakdown:
