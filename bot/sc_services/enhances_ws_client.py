@@ -5,8 +5,8 @@ from dacite import from_dict
 from typing import Callable
 from coinbase.websocket import WSClient
 from keys import api_key, api_secret
-from bot.sc_services.setup_service import SetupService
-from bot.sc_types import *
+from sc_services.setup_service import SetupService
+from sc_types import *
 
 
 class EnhancedWSClient(WSClient):

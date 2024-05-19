@@ -1,7 +1,7 @@
 from collections import defaultdict
 from typing import Dict
-from bot.sc_types.config import CurrencyPair
-from bot.sc_types import *
+from sc_types.config import CurrencyPair
+from sc_types import *
 
 
 class OrderBook:

@@ -1,10 +1,10 @@
 import time
 from coinbase.rest import RESTClient
 from dacite import from_dict
-from bot.sc_types import *
-from bot.sc_services.account_service import AccountService
-from bot.sc_services.order_service import OrderService
-from bot.sc_services.order_book import OrderBook
+from sc_types import *
+from sc_services.account_service import AccountService
+from sc_services.order_service import OrderService
+from sc_services.order_book import OrderBook
 
 
 class SetupService:
@@ -44,24 +44,36 @@ class SetupService:
                 CurrencyPair.DAI_USDC, OrderSide.SELL, price, sell_qty
             )
 
-    def cancel_all_orders(self) -> None:
+    def cancel_all_orders(self, max_retries: int = 3) -> None:
         print("Cancelling all orders...")
         data = self.api_client.list_orders()
         orders = from_dict(AllOrdersList, data)
         orderIds = [order.order_id for order in orders.orders if order.status == "OPEN"]
+
         if orderIds:
             self.api_client.cancel_orders(orderIds)
-            while True:
+
+            retries = 0
+            while retries < max_retries:
                 time.sleep(3)
-                data = self.api_client.list_orders()
-                orders = from_dict(AllOrdersList, data)
-                if all(
-                    order.status == "CANCELLED"
-                    for order in orders.orders
-                    if order.order_id in orderIds
-                ):
-                    break
-        print("All orders have been cancelled!")
+                print(
+                    f"Checking if all orders have been cancelled... (Attempt {retries + 1})"
+                )
+                try:
+                    data = self.api_client.list_orders()
+                    orders = from_dict(AllOrdersList, data)
+                    if all(
+                        order.status == "CANCELLED"
+                        for order in orders.orders
+                        if order.order_id in orderIds
+                    ):
+                        print("All orders have been cancelled!")
+                        break
+                except Exception as e:
+                    print(f"An error occurred: {e}")
+                retries += 1
+            else:
+                print(f"All orders could not be cancelled after {max_retries} retries.")
 
     def generate_order_distribution(
         self, min_val: float, max_val: float, amount: int

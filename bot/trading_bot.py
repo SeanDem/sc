@@ -1,5 +1,5 @@
-from bot.sc_types import *
-from bot.sc_services import *
+from sc_types import *
+from sc_services import *
 from coinbase.rest import RESTClient
 from keys import api_key, api_secret
 
