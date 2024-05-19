@@ -26,7 +26,7 @@ class SetupService:
         )
         print(f"USDC: {usdc_amt}")
         print(f"{CurrencyPair.DAI_USDC.value}: {token_amt}")
-        buy_prices = self.generate_order_distribution(0.9871, 0.9989, 8)
+        buy_prices = self.generate_order_distribution(0.9871, 0.9995, 8)
         buy_qty: str = "{:.4f}".format(usdc_amt / len(buy_prices))
         for price in buy_prices:
             time.sleep(1)
@@ -35,7 +35,7 @@ class SetupService:
                 CurrencyPair.DAI_USDC, OrderSide.BUY, price, amount=buy_qty
             )
 
-        sell_prices = [".9999", "1.0006"]
+        sell_prices = [".9999", "1.0002"]
         sell_qty: str = "{:.4f}".format(token_amt / len(sell_prices))
         for price in sell_prices:
             time.sleep(1)
@@ -43,13 +43,6 @@ class SetupService:
             self.orderBook.update_order(
                 CurrencyPair.DAI_USDC, OrderSide.SELL, price, sell_qty
             )
-
-    def generate_order_distribution(
-        self, min_val: float, max_val: float, amount: int
-    ) -> list:
-        step = (max_val - min_val) / (amount - 1)
-        distribution = [min_val + i * step for i in range(amount)]
-        return [f"{num:.4f}" for num in distribution]
 
     def cancel_all_orders(self) -> None:
         print("Cancelling all orders...")
@@ -69,3 +62,12 @@ class SetupService:
                 ):
                     break
         print("All orders have been cancelled!")
+
+    def generate_order_distribution(
+        self, min_val: float, max_val: float, amount: int
+    ) -> list:
+        if amount == 1:
+            return [f"{min_val:.4f}"]
+        step = (max_val - min_val) / (amount - 1)
+        distribution = [min_val + i * step for i in range(amount)]
+        return [f"{num:.4f}" for num in distribution]
