@@ -1,8 +1,8 @@
 import uuid
 from decimal import Decimal, ROUND_DOWN
 from coinbase.rest import RESTClient
-from sc_types import CurrencyPair
-from account_service import AccountService
+from bot.sc_services.account_service import AccountService
+from bot.sc_types.config import CurrencyPair
 
 
 class OrderService:

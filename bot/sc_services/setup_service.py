@@ -1,10 +1,11 @@
 import time
 from coinbase.rest import RESTClient
 from dacite import from_dict
-from sc_types import *
-from sc_services.account_service import AccountService
-from sc_services.order_service import OrderService
-from sc_services.order_book import OrderBook
+from bot.sc_types import *
+from bot.sc_services.account_service import AccountService
+from bot.sc_services.order_service import OrderService
+from bot.sc_services.order_book import OrderBook
+
 
 class SetupService:
     def __init__(self, accountService, orderService, orderBook, api_client) -> None:
@@ -18,6 +19,7 @@ class SetupService:
         self.setup_initial_orders(CurrencyPair.DAI_USDC)
 
     def setup_initial_orders(self, currency_pair) -> None:
+        print("Setting up initial orders...")
         usdc_amt = self.accountService.get_usdc_available_to_trade()
         token_amt = self.accountService.get_token_available_to_trade(
             CurrencyPair.DAI_USDC
@@ -50,6 +52,7 @@ class SetupService:
         return [f"{num:.4f}" for num in distribution]
 
     def cancel_all_orders(self) -> None:
+        print("Cancelling all orders...")
         data = self.api_client.list_orders()
         orders = from_dict(AllOrdersList, data)
         orderIds = [order.order_id for order in orders.orders if order.status == "OPEN"]

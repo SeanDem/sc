@@ -2,18 +2,24 @@ import time
 import json
 
 from dacite import from_dict
-from .setup_service import SetupService
-from sc_types import *
 from typing import Callable
 from coinbase.websocket import WSClient
 from keys import api_key, api_secret
+from bot.sc_services.setup_service import SetupService
+from bot.sc_types import *
 
 
 class EnhancedWSClient(WSClient):
     def __init__(
         self, setupService: SetupService, handleOrder: Callable[[OrderEvent], None]
     ):
-        super().__init__(api_key, api_secret)
+        super().__init__(
+            api_key,
+            api_secret,
+            on_open=self.on_open,
+            on_message=self.on_message,
+            on_close=self.on_close,
+        )
         self.setupService = setupService
         self.handleOrder = handleOrder
         self.reconnect_attempts = 0

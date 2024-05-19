@@ -1,9 +1,9 @@
 from bot.sc_services.order_service import OrderService
-from token_service import TokenService
-from account_service import AccountService
-from order_book import OrderBook
-from enhances_ws_client import EnhancedWSClient
-from setup_service import SetupService
+from bot.sc_services.token_service import TokenService
+from bot.sc_services.account_service import AccountService
+from bot.sc_services.order_book import OrderBook
+from bot.sc_services.enhances_ws_client import EnhancedWSClient
+from bot.sc_services.setup_service import SetupService
 
 __all__ = [
     "OrderService",

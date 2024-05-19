@@ -2,7 +2,6 @@ from dataclasses import dataclass, field
 from typing import List, Optional
 from enum import Enum
 
-
 class OrderStatus(Enum):
     PENDING = "PENDING"
     OPEN = "OPEN"
