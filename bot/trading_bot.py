@@ -2,18 +2,14 @@ import json
 import threading
 import time
 from dacite import from_dict
-from .sc_services.order_book import OrderBook
 from sc_types import *
 from sc_services import *
-from keys import api_key, api_secret
 from coinbase.websocket import WSClient
 from coinbase.rest import RESTClient
 from keys import api_key, api_secret
 
 
 class TradingBot:
-    reconnect_attempts = 0
-
     def __init__(self) -> None:
         self.api_client = RESTClient(api_key=api_key, api_secret=api_secret)
         self.accountService = AccountService(self.api_client)
