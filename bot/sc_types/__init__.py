@@ -4,7 +4,6 @@ from portfolio_types import PortfolioBreakdown
 from order_types import OrderResponse
 from token_types import Product
 from config import CurrencyPair
-from config import QueueOrder
 from event_types import OrderSide
 from event_types import OrderEvent
 from event_types import CB_Message
@@ -17,7 +16,6 @@ __all__ = [
     "OrderResponse",
     "Product",
     "CurrencyPair",
-    "QueueOrder",
     "OrderSide",
     "OrderEvent",
     "CB_Message",

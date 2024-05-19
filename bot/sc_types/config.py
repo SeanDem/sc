@@ -11,11 +11,3 @@ class CurrencyPair(Enum):
     USDT_USDC = "USDT-USDC"
     EUROC_USDC = "EUROC-USDC"
     PYUSD_USDC = "PYUSD-USDC"
-
-
-@dataclass
-class QueueOrder:
-    pair: CurrencyPair
-    price: str
-    qty: str
-    type: OrderSide
