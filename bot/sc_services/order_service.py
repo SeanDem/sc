@@ -1,8 +1,6 @@
 import uuid
-from dacite import from_dict
 from decimal import Decimal, ROUND_DOWN
 from coinbase.rest import RESTClient
-from sc_types.order_types import OrderResponse
 from sc_types import CurrencyPair
 from account_service import AccountService
 

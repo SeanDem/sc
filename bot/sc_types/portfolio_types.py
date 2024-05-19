@@ -1,10 +1,12 @@
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import List, Optional
+
 
 @dataclass
 class CurrencyValue:
     value: str
     currency: str
+
 
 @dataclass
 class Portfolio:
@@ -13,10 +15,12 @@ class Portfolio:
     type: str
     deleted: bool
 
+
 @dataclass
 class Portfolios:
     portfolios: List[Portfolio]
-    
+
+
 @dataclass
 class PortfolioBalances:
     total_balance: CurrencyValue
@@ -25,6 +29,7 @@ class PortfolioBalances:
     total_crypto_balance: CurrencyValue
     futures_unrealized_pnl: CurrencyValue
     perp_unrealized_pnl: CurrencyValue
+
 
 @dataclass
 class SpotPosition:
@@ -42,6 +47,7 @@ class SpotPosition:
     available_to_trade_crypto: float
     unrealized_pnl: float
 
+
 @dataclass
 class Breakdown:
     portfolio: Portfolio
@@ -49,7 +55,8 @@ class Breakdown:
     spot_positions: List[SpotPosition]
     perp_positions: List
     futures_positions: List
-    
+
+
 @dataclass
 class PortfolioBreakdown:
     breakdown: Breakdown

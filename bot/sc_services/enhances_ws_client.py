@@ -2,8 +2,8 @@ import time
 import json
 
 from dacite import from_dict
+from .setup_service import SetupService
 from sc_types import *
-from sc_services import *
 from typing import Callable
 from coinbase.websocket import WSClient
 from keys import api_key, api_secret

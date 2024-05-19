@@ -2,8 +2,9 @@ import time
 from coinbase.rest import RESTClient
 from dacite import from_dict
 from sc_types import *
-from sc_services import *
-
+from sc_services.account_service import AccountService
+from sc_services.order_service import OrderService
+from sc_services.order_book import OrderBook
 
 class SetupService:
     def __init__(self, accountService, orderService, orderBook, api_client) -> None:
