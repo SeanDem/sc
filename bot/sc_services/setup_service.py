@@ -2,9 +2,7 @@ import time
 from coinbase.rest import RESTClient
 from dacite import from_dict
 from sc_types import *
-from sc_services.account_service import AccountService
-from sc_services.order_service import OrderService
-from sc_services.order_book import OrderBook
+from sc_services import *
 
 
 class SetupService:
@@ -14,35 +12,54 @@ class SetupService:
         self.orderBook: OrderBook = orderBook
         self.api_client: RESTClient = api_client
 
-    def start(self) -> None:
+    def start(self, dict: dict[CurrencyPair, CurrencyPairConfig]) -> None:
         self.cancel_all_orders()
-        self.setup_initial_orders(CurrencyPair.DAI_USDC)
+        for pair, config in dict.items():
+            self.setup_initial_orders(config)
 
-    def setup_initial_orders(self, currency_pair) -> None:
-        print("Setting up initial orders...")
+    def setup_initial_orders(self, config: CurrencyPairConfig) -> None:
+        print(f"Setting up initial orders for {config.pair.value}...")
         usdc_amt = self.accountService.get_usdc_available_to_trade()
-        token_amt = self.accountService.get_token_available_to_trade(
-            CurrencyPair.DAI_USDC
+        token_amt = self.accountService.get_token_available_to_trade(config.pair)
+
+        account_balance = self.accountService.get_account_balance()
+        funds_allocated = float(account_balance) * float(config.percent_of_funds)
+
+        print(
+            f"Total funds allocated to trade on {config.pair.value}: {funds_allocated}"
         )
-        print(f"USDC: {usdc_amt}")
-        print(f"{CurrencyPair.DAI_USDC.value}: {token_amt}")
-        buy_prices = self.generate_order_distribution(0.9871, 0.9995, 8)
-        buy_qty: str = "{:.4f}".format(usdc_amt / len(buy_prices))
+        print(f"{config.pair.value}: {token_amt} allocated to trade")
+        print(f"USDC: {usdc_amt} available for trading")
+
+        # Calculate the USDC amount to be used for buying
+        usdc_for_buying = (
+            funds_allocated if token_amt == 0 else (funds_allocated - token_amt)
+        )
+        print(f"USDC allocated for buying: {usdc_for_buying}")
+
+        buy_prices = self.generate_order_distribution(
+            float(config.buy_range.start),
+            min(float(config.buy_range.end), float(config.max_buy_price)),
+            config.buy_range.num_steps,
+        )
+        buy_qty = "{:.4f}".format(usdc_for_buying / len(buy_prices))
         for price in buy_prices:
             time.sleep(1)
-            self.orderService.attempt_buy(CurrencyPair.DAI_USDC, buy_qty, price)
+            self.orderService.attempt_buy(config.pair, buy_qty, price)
             self.orderBook.update_order(
-                CurrencyPair.DAI_USDC, OrderSide.BUY, price, amount=buy_qty
+                config.pair, OrderSide.BUY, price, amount=buy_qty
             )
 
-        sell_prices = [".9999", "1.0002"]
-        sell_qty: str = "{:.4f}".format(token_amt / len(sell_prices))
+        sell_prices = self.generate_order_distribution(
+            max(float(config.sell_range.start), float(config.min_sell_price)),
+            float(config.sell_range.end),
+            config.sell_range.num_steps,
+        )
+        sell_qty = "{:.4f}".format(token_amt / len(sell_prices))
         for price in sell_prices:
             time.sleep(1)
-            self.orderService.attempt_sell(CurrencyPair.DAI_USDC, sell_qty, price)
-            self.orderBook.update_order(
-                CurrencyPair.DAI_USDC, OrderSide.SELL, price, sell_qty
-            )
+            self.orderService.attempt_sell(config.pair, sell_qty, price)
+            self.orderBook.update_order(config.pair, OrderSide.SELL, price, sell_qty)
 
     def cancel_all_orders(self, max_retries: int = 3) -> None:
         print("Cancelling all orders...")

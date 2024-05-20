@@ -3,10 +3,17 @@ from decimal import Decimal, ROUND_DOWN
 from coinbase.rest import RESTClient
 from sc_services.account_service import AccountService
 from sc_types import *
+from config import config
 
 
 class OrderService:
-    def __init__(self, api_client: RESTClient, accountService: AccountService) -> None:
+    def __init__(
+        self,
+        api_client: RESTClient,
+        accountService: AccountService,
+        config: dict[CurrencyPair, CurrencyPairConfig] = config,
+    ) -> None:
+        self.config = config
         self.api_client: RESTClient = api_client
         self.precision = 4
         self.accountService = accountService
@@ -23,8 +30,8 @@ class OrderService:
         qty: str,
         price: str,
     ):
-        if float(price) > 0.9999:
-            print("Buy price too high")
+        if float(price) > float(config[pair].max_buy_price):
+            print(f"Buy price too high for {pair.value} at {price}")
             return
         orderId = self.generate_order_id()
         adjusted_size = self.adjust_precision(qty)
@@ -41,8 +48,8 @@ class OrderService:
         qty: str,
         price: str,
     ):
-        if float(price) < 0.9994:
-            print("Sale price price too low")
+        if float(price) < float(config[pair].min_sell_price):
+            print(f"Sell price too low for {pair.value} at {price}")
             return
         orderId = self.generate_order_id()
         adjusted_size = self.adjust_precision(qty)

@@ -40,7 +40,7 @@ class LimitLimitGtc:
 
 @dataclass
 class OrderConfiguration:
-    limit_limit_gtc: LimitLimitGtc
+    limit_limit_gtc: Optional[LimitLimitGtc]
 
 
 @dataclass
@@ -56,7 +56,7 @@ class OrderResponse:
     success: bool
     failure_reason: str
     order_id: str
-    order_configuration: OrderConfiguration
+    order_configuration: Optional[OrderConfiguration]
     success_response: Optional[SuccessResponse] = None
     error_response: Optional[ErrorResponse] = None
 

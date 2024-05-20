@@ -7,11 +7,15 @@ from coinbase.websocket import WSClient
 from keys import api_key, api_secret
 from sc_services.setup_service import SetupService
 from sc_types import *
+from config import config
 
 
 class EnhancedWSClient(WSClient):
     def __init__(
-        self, setupService: SetupService, handleOrder: Callable[[OrderEvent], None]
+        self,
+        setupService: SetupService,
+        handleOrder: Callable[[OrderEvent], None],
+        config: dict[CurrencyPair, CurrencyPairConfig] = config,
     ):
         super().__init__(
             api_key,
@@ -24,6 +28,7 @@ class EnhancedWSClient(WSClient):
         self.handleOrder = handleOrder
         self.reconnect_attempts = 0
         self.max_reconnect_attempts = 5
+        self.config = config
 
     def start(self) -> None:
         try:
@@ -48,7 +53,7 @@ class EnhancedWSClient(WSClient):
     def on_open(self) -> None:
         print("WebSocket is now open!")
         self.reconnect_attempts = 0
-        self.setupService.start()
+        self.setupService.start(self.config)
 
     def on_close(self) -> None:
         print("WebSocket closed")

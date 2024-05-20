@@ -2,10 +2,12 @@ from sc_types import *
 from sc_services import *
 from coinbase.rest import RESTClient
 from keys import api_key, api_secret
+from config import config
 
 
 class TradingBot:
     def __init__(self) -> None:
+        self.config = config
         self.api_client = RESTClient(api_key=api_key, api_secret=api_secret)
         self.accountService = AccountService(self.api_client)
         self.orderService = OrderService(self.api_client, self.accountService)
@@ -20,6 +22,7 @@ class TradingBot:
         self.eventService = EnhancedWSClient(self.setupService, self.handle_order)
 
     def start(self) -> None:
+        self.accountService.getPortfolioBreakdown()
         self.eventService.start()
 
     def handle_order(self, order: OrderEvent) -> None:
