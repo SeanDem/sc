@@ -19,7 +19,7 @@ class OrderBook:
         """Update the order quantity for a given pair, side, and price."""
         self.orders[pair][side][price] = amount
 
-    def get_lowest_price(self, pair: CurrencyPair, side: OrderSide) -> str:
+    def get_lowest_qty_price(self, pair: CurrencyPair, side: OrderSide) -> str:
         """Get the price for the given pair and side that has the smallest quantity."""
         if self.orders[pair][side]:
             return min(self.orders[pair][side], key=lambda k: abs(float(k) - 1))

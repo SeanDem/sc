@@ -20,13 +20,17 @@ class TradingBot:
         )
         self.tokenService = TokenService(self.api_client)
         self.eventService = EnhancedWSClient(self.setupService, self.handle_order)
+        self.orderNumber = 0
 
     def start(self) -> None:
         self.accountService.getPortfolioBreakdown()
         self.eventService.start()
 
     def handle_order(self, order: OrderEvent) -> None:
-        if order.order_side == OrderSide.BUY.value:
+        self.orderNumber += 1
+        if self.orderNumber % 15 == 0:  # Every 15th order, re-balance the portfolio
+            self.setupService.start()
+        elif order.order_side == OrderSide.BUY.value:
             self.handle_buy_order(order)
         elif order.order_side == OrderSide.SELL.value:
             self.handle_sell_order(order)
@@ -45,7 +49,7 @@ class TradingBot:
             order.avg_price,
             order.cumulative_quantity,
         )
-        min_amount_and_price = self.orderBook.get_lowest_price(
+        min_amount_and_price = self.orderBook.get_lowest_qty_price(
             CurrencyPair(order.product_id), OrderSide.SELL
         )
         self.orderService.attempt_sell(
@@ -68,7 +72,7 @@ class TradingBot:
             order.avg_price,
             order.cumulative_quantity,
         )
-        min_amount_and_price = self.orderBook.get_lowest_price(
+        min_amount_and_price = self.orderBook.get_lowest_qty_price(
             CurrencyPair(order.product_id), OrderSide.BUY
         )
         print(f"Min amount and price: {min_amount_and_price}")

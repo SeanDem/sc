@@ -1,20 +1,30 @@
+from logging import config
 import time
 from coinbase.rest import RESTClient
 from dacite import from_dict
 from sc_types import *
 from sc_services import *
+from config import config
 
 
 class SetupService:
-    def __init__(self, accountService, orderService, orderBook, api_client) -> None:
+    def __init__(
+        self,
+        accountService,
+        orderService,
+        orderBook,
+        api_client,
+        config: dict[CurrencyPair, CurrencyPairConfig] = config,
+    ) -> None:
         self.accountService: AccountService = accountService
         self.orderService: OrderService = orderService
         self.orderBook: OrderBook = orderBook
         self.api_client: RESTClient = api_client
+        self.config = config
 
-    def start(self, dict: dict[CurrencyPair, CurrencyPairConfig]) -> None:
+    def start(self) -> None:
         self.cancel_all_orders()
-        for pair, config in dict.items():
+        for pair, config in self.config.items():
             self.setup_initial_orders(config)
 
     def setup_initial_orders(self, config: CurrencyPairConfig) -> None:
@@ -25,8 +35,10 @@ class SetupService:
         account_balance = self.accountService.get_account_balance()
         funds_allocated = float(account_balance) * float(config.percent_of_funds)
 
-        print(f"Total account balance: {account_balance:.2f} USD")
-        print(f"Allocated for trading on {config.pair.value}: {funds_allocated:.2f} USD")
+        print(f"Total account balance: {float(account_balance):.2f} USD")
+        print(
+            f"Allocated for trading on {config.pair.value}: {funds_allocated:.2f} USD"
+        )
         print(f"Available {config.pair.value.split('-')[0]} tokens: {token_amt:.4f}")
         print(f"USDC available for trading: {usdc_amt:.2f} USD")
 

@@ -7,7 +7,7 @@ config: dict[CurrencyPair,CurrencyPairConfig ] = {
         "0.5",
         ".9997",
         ".9999",
-        RangeConfig("0.9871", "0.9995", 10),
+        RangeConfig("0.9871", "0.9996", 10),
         RangeConfig(".9999", "1.0002", 2),
     ),
     CurrencyPair.PAX_USDC: CurrencyPairConfig(
@@ -15,7 +15,7 @@ config: dict[CurrencyPair,CurrencyPairConfig ] = {
         "0.5",
         ".9997",
         ".9999",
-        RangeConfig("0.9812", "0.9994", 10),
+        RangeConfig("0.9812", "0.9996", 10),
         RangeConfig("1", "1.0007", 2),
     ),
 }
