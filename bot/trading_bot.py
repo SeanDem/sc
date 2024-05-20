@@ -1,3 +1,5 @@
+from threading import Thread
+import time
 from sc_types import *
 from sc_services import *
 from coinbase.rest import RESTClient
@@ -23,13 +25,24 @@ class TradingBot:
         self.orderNumber = 0
 
     def start(self) -> None:
+        periodic_thread = Thread(target=self.periodic)
+        periodic_thread.start()
         self.accountService.getPortfolioBreakdown()
         self.eventService.start()
 
+    def periodic(self) -> None:
+        print("Starting periodic thread")
+        while True:
+            hour: int = 60 * 60
+            time.sleep(hour)
+            print("Rebalancing all pairs...")
+            self.setupService.re_balance_All()
+
     def handle_order(self, order: OrderEvent) -> None:
         self.orderNumber += 1
-        if self.orderNumber % 15 == 0:  # Every 15th order, re-balance the portfolio
-            self.setupService.start()
+        time.sleep(60)  # Sleep for 60 seconds to ensure order is filled
+        if self.orderNumber % 25 == 0:
+            self.setupService.re_balance_pair(CurrencyPair(order.product_id))
         elif order.order_side == OrderSide.BUY.value:
             self.handle_buy_order(order)
         elif order.order_side == OrderSide.SELL.value:
@@ -75,8 +88,6 @@ class TradingBot:
         min_amount_and_price = self.orderBook.get_lowest_qty_price(
             CurrencyPair(order.product_id), OrderSide.BUY
         )
-        print(f"Min amount and price: {min_amount_and_price}")
-        print(f"Order amount: {order_amount}")
         self.orderService.attempt_buy(
             CurrencyPair(order.product_id),
             str(order_amount),

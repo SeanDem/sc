@@ -56,7 +56,7 @@ class OrderService:
         pair: CurrencyPair,
         qty: str,
         price: str,
-    ):
+    ) -> None:
         if float(price) < float(config[pair].min_sell_price):
             print(f"Sell price too low for {pair.value} at {price}")
             return
@@ -83,7 +83,7 @@ class OrderService:
         qty_to_order: float = min(
             usdc_available_float, qty_float
         )  # should be fine but may cause issues
-        if usdc_available > 1 and usdc_available > qty_to_order:
+        if qty_to_order > 1 and usdc_available > 1 and usdc_available > qty_to_order:
             self.buyOrder(pair, price=price, qty=str(qty_to_order))
 
     def attempt_sell(self, pair: CurrencyPair, qty: str, price: str) -> None:
@@ -93,5 +93,9 @@ class OrderService:
         qty_to_order: float = min(
             token_available_float, qty_float
         )  # should be fine but may cause issues
-        if token_available_float > 1 and token_available_float > qty_to_order:
+        if (
+            qty_to_order > 1
+            and token_available_float > 1
+            and token_available_float > qty_to_order
+        ):
             self.sellOrder(pair, price=price, qty=str(qty_to_order))
