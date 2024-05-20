@@ -62,6 +62,7 @@ class SetupService:
         )
         buy_qty = "{:.4f}".format(funds_allocated / len(buy_prices))
         for price in buy_prices:
+            time.sleep(0.1)
             self.orderService.attempt_buy(config.pair, buy_qty, price)
             self.orderBook.update_order(
                 config.pair, OrderSide.BUY, price, amount=buy_qty
@@ -74,6 +75,7 @@ class SetupService:
         )
         sell_qty = "{:.4f}".format(token_amt / len(sell_prices))
         for price in sell_prices:
+            time.sleep(0.1)
             self.orderService.attempt_sell(config.pair, sell_qty, price)
             self.orderBook.update_order(config.pair, OrderSide.SELL, price, sell_qty)
 
@@ -132,10 +134,11 @@ class SetupService:
 
     def validate_configs(self) -> LiteralString | None:
         errors = []
-
+        total_percent = 0
         for pair, settings in self.config.items():
             try:
                 percent_funds = Decimal(settings.percent_of_funds)
+                total_percent += percent_funds
                 if not (0 < percent_funds < 1):
                     errors.append(
                         f"{pair}: percent_of_funds {settings.percent_of_funds} should be between 0 and 1."
@@ -161,7 +164,10 @@ class SetupService:
                     )
             except:
                 errors.append(f"{pair}: Invalid range values.")
-
+        if total_percent != 1:
+            errors.append(
+                f"Total percent_of_funds should add up to 1. Currently at {total_percent}."
+            )
         if errors:
             print("Errors found in configurations:")
             return "\n".join(errors)
