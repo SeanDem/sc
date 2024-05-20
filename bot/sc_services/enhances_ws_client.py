@@ -53,7 +53,7 @@ class EnhancedWSClient(WSClient):
     def on_open(self) -> None:
         print("WebSocket is now open!")
         self.reconnect_attempts = 0
-        self.setupService.start(self.config)
+        self.setupService.start()
 
     def on_close(self) -> None:
         print("WebSocket closed")

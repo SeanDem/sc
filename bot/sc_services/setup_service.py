@@ -41,8 +41,6 @@ class SetupService:
         )
         print(f"Available {config.pair.value.split('-')[0]} tokens: {token_amt:.4f}")
         print(f"USDC available for trading: {usdc_amt:.2f} USD")
-
-        # Calculate the USDC amount to be used for buying
         usdc_for_buying = (
             funds_allocated if token_amt == 0 else (funds_allocated - token_amt)
         )
@@ -55,7 +53,7 @@ class SetupService:
         )
         buy_qty = "{:.4f}".format(usdc_for_buying / len(buy_prices))
         for price in buy_prices:
-            time.sleep(1)
+            time.sleep(0.1)
             self.orderService.attempt_buy(config.pair, buy_qty, price)
             self.orderBook.update_order(
                 config.pair, OrderSide.BUY, price, amount=buy_qty
@@ -68,7 +66,7 @@ class SetupService:
         )
         sell_qty = "{:.4f}".format(token_amt / len(sell_prices))
         for price in sell_prices:
-            time.sleep(1)
+            time.sleep(0.1)
             self.orderService.attempt_sell(config.pair, sell_qty, price)
             self.orderBook.update_order(config.pair, OrderSide.SELL, price, sell_qty)
 

@@ -23,6 +23,7 @@ class RangeConfig:
 @dataclass
 class CurrencyPairConfig:
     pair: CurrencyPair
+    qty_precision: int
     percent_of_funds: str
     max_buy_price: str
     min_sell_price: str
