@@ -25,11 +25,10 @@ class SetupService:
         account_balance = self.accountService.get_account_balance()
         funds_allocated = float(account_balance) * float(config.percent_of_funds)
 
-        print(
-            f"Total funds allocated to trade on {config.pair.value}: {funds_allocated}"
-        )
-        print(f"{config.pair.value}: {token_amt} allocated to trade")
-        print(f"USDC: {usdc_amt} available for trading")
+        print(f"Total account balance: {account_balance:.2f} USD")
+        print(f"Allocated for trading on {config.pair.value}: {funds_allocated:.2f} USD")
+        print(f"Available {config.pair.value.split('-')[0]} tokens: {token_amt:.4f}")
+        print(f"USDC available for trading: {usdc_amt:.2f} USD")
 
         # Calculate the USDC amount to be used for buying
         usdc_for_buying = (
