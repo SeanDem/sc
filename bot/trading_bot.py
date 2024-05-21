@@ -23,7 +23,6 @@ class TradingBot:
         )
         self.tokenService = TokenService(self.api_client)
         self.eventService = EnhancedWSClient(self.setupService, self.handle_order)
-        self.orderNumber = 0
 
     def start(self) -> None:
         periodic_thread = Thread(target=self.periodic)
@@ -41,11 +40,8 @@ class TradingBot:
 
     def handle_order(self, order: OrderEvent) -> None:
         print(f"Handling order event: {order}")
-        self.orderNumber += 1
-        time.sleep(60)
-        if self.orderNumber % 25 == 0:
-            self.setupService.re_balance_pair(CurrencyPair(order.product_id))
-        elif order.order_side == OrderSide.BUY.value:
+        time.sleep(120)
+        if order.order_side == OrderSide.BUY.value:
             self.handle_buy_order(order)
         elif order.order_side == OrderSide.SELL.value:
             self.handle_sell_order(order)

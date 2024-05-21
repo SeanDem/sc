@@ -37,11 +37,11 @@ class SetupService:
 
     def re_balance_pair(self, pair: CurrencyPair) -> None:
         self.cancel_orders(pair)
+        time.sleep(15)
         self.setup_initial_orders(config[pair])
 
     def setup_initial_orders(self, config: CurrencyPairConfig) -> None:
         print(f"Setting up initial orders for {config.pair.value}...")
-        usdc_amt = self.accountService.get_usdc_available_to_trade()
         token_amt = self.accountService.get_token_available_to_trade(config.pair)
 
         account_balance = self.accountService.get_account_balance()
@@ -53,7 +53,6 @@ class SetupService:
             f"Allocated for trading on {config.pair.value}: {funds_allocated:.2f} USD"
         )
         print(f"Available {config.pair.value.split('-')[0]} tokens: {token_amt:.4f}")
-        print(f"USDC available for trading: {usdc_amt:.2f} USD")
         print(f"USDC allocated for buying: {funds_allocated:.2f} USD")
 
         buy_prices = self.generate_order_distribution(
