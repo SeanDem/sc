@@ -1,3 +1,4 @@
+from decimal import Decimal
 from threading import Thread
 import time
 from sc_types import *
@@ -34,13 +35,14 @@ class TradingBot:
         print("Starting periodic thread")
         while True:
             hour: int = 60 * 60
-            time.sleep(hour)
+            time.sleep(hour * 3)
             print("Rebalancing all pairs...")
             self.setupService.re_balance_All()
 
     def handle_order(self, order: OrderEvent) -> None:
+        print(f"Handling order event: {order}")
         self.orderNumber += 1
-        time.sleep(60)  # Sleep for 60 seconds to ensure order is filled
+        time.sleep(60)
         if self.orderNumber % 25 == 0:
             self.setupService.re_balance_pair(CurrencyPair(order.product_id))
         elif order.order_side == OrderSide.BUY.value:
@@ -50,12 +52,12 @@ class TradingBot:
 
     def handle_buy_order(self, order: OrderEvent) -> None:
         print(
-            f"Buy order event filled or partially filled: {order.cumulative_quantity} at {order.avg_price}"
+            f"Buy order event filled for {order.product_id}: {order.cumulative_quantity} at {order.avg_price} USDC"
         )
         prev_amount = self.orderBook.get_order_amount(
             CurrencyPair(order.product_id), OrderSide.BUY, order.avg_price
         )
-        order_amount = float(order.cumulative_quantity) - float(prev_amount)
+        order_amount = Decimal(order.cumulative_quantity) - Decimal(prev_amount)
         self.orderBook.update_order(
             CurrencyPair(order.product_id),
             OrderSide.BUY,
@@ -73,12 +75,12 @@ class TradingBot:
 
     def handle_sell_order(self, order: OrderEvent) -> None:
         print(
-            f"Sell order event filled or partially filled: {order.cumulative_quantity} at {order.avg_price}"
+            f"Sell order event filled for {order.product_id}: {order.cumulative_quantity} at {order.avg_price} USDC"
         )
         prev_amount = self.orderBook.get_order_amount(
             CurrencyPair(order.product_id), OrderSide.SELL, order.avg_price
         )
-        order_amount = float(order.cumulative_quantity) - float(prev_amount)
+        order_amount = Decimal(order.cumulative_quantity) - Decimal(prev_amount)
         self.orderBook.update_order(
             CurrencyPair(order.product_id),
             OrderSide.SELL,

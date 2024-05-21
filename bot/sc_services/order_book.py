@@ -1,4 +1,5 @@
 from collections import defaultdict
+from decimal import Decimal
 from typing import Dict
 from sc_types import *
 
@@ -17,8 +18,7 @@ class OrderBook:
     ) -> None:
         self.orders[pair][side][price] = amount
 
-    """Get the price for the given pair and side that has the smallest quantity."""
     def get_lowest_qty_price(self, pair: CurrencyPair, side: OrderSide) -> str:
         if self.orders[pair][side]:
-            return min(self.orders[pair][side], key=lambda k: abs(float(k) - 1))
+            return min(self.orders[pair][side], key=lambda k: abs(Decimal(k) - 1))
         return "1.00"

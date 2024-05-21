@@ -2,6 +2,7 @@ from decimal import Decimal
 from logging import config
 import time
 from typing import LiteralString
+from uu import Error
 from coinbase.rest import RESTClient
 from dacite import from_dict
 from sc_types import *
@@ -45,8 +46,8 @@ class SetupService:
 
         account_balance = self.accountService.get_account_balance()
         funds_allocated = (
-            float(account_balance) * float(config.percent_of_funds)
-        ) - token_amt
+            Decimal(account_balance) * Decimal(config.percent_of_funds)
+        ) - Decimal(token_amt)
         print(f"Total account balance: {float(account_balance):.2f} USD")
         print(
             f"Allocated for trading on {config.pair.value}: {funds_allocated:.2f} USD"
@@ -170,6 +171,6 @@ class SetupService:
             )
         if errors:
             print("Errors found in configurations:")
-            return "\n".join(errors)
+            raise Error("\n".join(errors))
         else:
             print("All configurations are logically sound.")

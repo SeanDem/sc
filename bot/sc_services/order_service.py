@@ -32,7 +32,7 @@ class OrderService:
         qty: str,
         price: str,
     ):
-        if float(price) > float(config[pair].max_buy_price):
+        if Decimal(price) > Decimal(config[pair].max_buy_price):
             print(f"Buy price too high for {pair.value} at {price}")
             return
         orderId = self.generate_order_id()
@@ -57,7 +57,7 @@ class OrderService:
         qty: str,
         price: str,
     ) -> None:
-        if float(price) < float(config[pair].min_sell_price):
+        if Decimal(price) < Decimal(config[pair].min_sell_price):
             print(f"Sell price too low for {pair.value} at {price}")
             return
         orderId = self.generate_order_id()
@@ -78,9 +78,9 @@ class OrderService:
 
     def attempt_buy(self, pair: CurrencyPair, qty: str, price: str) -> None:
         usdc_available = self.accountService.get_usdc_available_to_trade()
-        qty_float = float(qty)
-        usdc_available_float = float(usdc_available)
-        qty_to_order: float = min(
+        qty_float = Decimal(qty)
+        usdc_available_float = Decimal(usdc_available)
+        qty_to_order = min(
             usdc_available_float, qty_float
         )  # should be fine but may cause issues
         if qty_to_order > 1 and usdc_available > 1 and usdc_available > qty_to_order:
@@ -88,9 +88,9 @@ class OrderService:
 
     def attempt_sell(self, pair: CurrencyPair, qty: str, price: str) -> None:
         token_available = self.accountService.get_token_available_to_trade(pair)
-        qty_float = float(qty)
-        token_available_float = float(token_available)
-        qty_to_order: float = min(
+        qty_float = Decimal(qty)
+        token_available_float = Decimal(token_available)
+        qty_to_order = min(
             token_available_float, qty_float
         )  # should be fine but may cause issues
         if (
