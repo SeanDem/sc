@@ -1,7 +1,7 @@
 from collections import defaultdict
 from decimal import Decimal
 from typing import Dict
-from sc_types import *
+from bot.sc_types import *
 
 
 class OrderBook:

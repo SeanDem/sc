@@ -1,5 +1,5 @@
 import time
-from trading_bot import TradingBot
+from bot.trading_bot import TradingBot
 
 if __name__ == "__main__":
     bot = TradingBot()
@@ -8,5 +8,5 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"Critical error: {e}")
         print("Restarting bot instance in 100 seconds...")
-        time.sleep(100)
+        time.sleep(5)
         bot.start()

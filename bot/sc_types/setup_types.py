@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from enum import Enum
-from sc_types import *
+from typing import Optional
+from bot.sc_types import *
 
 
 class CurrencyPair(Enum):
@@ -13,11 +14,24 @@ class CurrencyPair(Enum):
     PYUSD_USDC = "PYUSD-USDC"
 
 
+class SkewDirection(Enum):
+    END = "end"
+    START = "start"
+    MID = "mid"
+
+
+@dataclass
+class Skew:
+    direction: SkewDirection
+    factor: float
+
+
 @dataclass
 class RangeConfig:
     start: str
     end: str
     num_steps: int
+    skew: Optional[Skew] = None
 
 
 @dataclass

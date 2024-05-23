@@ -1,7 +1,7 @@
 from decimal import Decimal
 from coinbase.rest import RESTClient
 from dacite import from_dict
-from sc_types import *
+from bot.sc_types import *
 
 
 class TokenService:

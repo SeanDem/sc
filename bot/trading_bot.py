@@ -1,11 +1,11 @@
 from decimal import Decimal
 from threading import Thread
 import time
-from sc_types import *
-from sc_services import *
+from bot.sc_types import *
+from bot.sc_services import *
+from bot.config import config
 from coinbase.rest import RESTClient
-from keys import api_key, api_secret
-from config import config
+from bot.keys import api_key, api_secret
 
 
 class TradingBot:
@@ -23,6 +23,7 @@ class TradingBot:
         )
         self.tokenService = TokenService(self.api_client)
         self.eventService = EnhancedWSClient(self.setupService, self.handle_order)
+        self.seen_order_ids = set[str]()
 
     def start(self) -> None:
         periodic_thread = Thread(target=self.periodic)
@@ -34,26 +35,31 @@ class TradingBot:
         print("Starting periodic thread")
         while True:
             hour: int = 60 * 60
-            time.sleep(hour * 3)
-            print("Rebalancing all pairs...")
+            time.sleep(3 * hour)
+            print(f"{3} hours has passed, re-balancing all pairs...")
             self.setupService.re_balance_All()
 
     def handle_order(self, order: OrderEvent) -> None:
-        print(f"Handling order event: {order}")
-        time.sleep(120)
-        if order.order_side == OrderSide.BUY.value:
-            self.handle_buy_order(order)
-        elif order.order_side == OrderSide.SELL.value:
-            self.handle_sell_order(order)
+        if order.status != OrderStatus.FILLED.value:
+            print(f"Order event not filled type: {order}")
+            return
+        if order.order_id in self.seen_order_ids:
+            print(f"Skipping order event seen before: {order}")
+            print(f"Seen order ids: {self.seen_order_ids}")
+            return
+        self.seen_order_ids.add(order.order_id)
+        if order.status == OrderStatus.FILLED.value:
+            print(f"Order event filled: {order}")
+            if order.order_side == OrderSide.BUY.value:
+                self.handle_buy_order(order)
+            elif order.order_side == OrderSide.SELL.value:
+                self.handle_sell_order(order)
 
     def handle_buy_order(self, order: OrderEvent) -> None:
         print(
             f"Buy order event filled for {order.product_id}: {order.cumulative_quantity} at {order.avg_price} USDC"
         )
-        prev_amount = self.orderBook.get_order_amount(
-            CurrencyPair(order.product_id), OrderSide.BUY, order.avg_price
-        )
-        order_amount = Decimal(order.cumulative_quantity) - Decimal(prev_amount)
+        order_amount = Decimal(order.cumulative_quantity)
         self.orderBook.update_order(
             CurrencyPair(order.product_id),
             OrderSide.BUY,
@@ -73,10 +79,7 @@ class TradingBot:
         print(
             f"Sell order event filled for {order.product_id}: {order.cumulative_quantity} at {order.avg_price} USDC"
         )
-        prev_amount = self.orderBook.get_order_amount(
-            CurrencyPair(order.product_id), OrderSide.SELL, order.avg_price
-        )
-        order_amount = Decimal(order.cumulative_quantity) - Decimal(prev_amount)
+        order_amount = abs(Decimal(order.cumulative_quantity))
         self.orderBook.update_order(
             CurrencyPair(order.product_id),
             OrderSide.SELL,

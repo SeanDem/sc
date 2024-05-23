@@ -1,6 +1,7 @@
+from decimal import Decimal
 from dacite import from_dict
-from sc_types import *
 from coinbase.rest import RESTClient
+from bot.sc_types import *
 
 
 class AccountService:
@@ -25,9 +26,9 @@ class AccountService:
     def get_token_available_to_trade(
         self,
         pair: CurrencyPair,
-    ) -> float:
+    ) -> Decimal:
         currency = pair.value.split("-")[0]
-        return self.get_available_to_trade(currency)
+        return Decimal(self.get_available_to_trade(currency))
 
     def get_usdc_available_to_trade(self) -> float:
         return self.get_available_to_trade("USDC")

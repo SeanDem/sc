@@ -4,10 +4,10 @@ import json
 from dacite import from_dict
 from typing import Callable
 from coinbase.websocket import WSClient
-from keys import api_key, api_secret
-from sc_services.setup_service import SetupService
-from sc_types import *
-from config import config
+from bot.keys import api_key, api_secret
+from bot.sc_services.setup_service import SetupService
+from bot.sc_types import *
+from bot.config import config
 
 
 class EnhancedWSClient(WSClient):
@@ -33,7 +33,7 @@ class EnhancedWSClient(WSClient):
     def start(self) -> None:
         try:
             self.open()
-            self.subscribe([], ["user"])
+            self.subscribe([], ["user", "heartbeats"])
             self.run_forever_with_exception_check()
         except Exception as e:
             print(f"Error in event service: {e}")
@@ -41,13 +41,22 @@ class EnhancedWSClient(WSClient):
             self.close()
 
     def on_message(self, msg: str) -> None:
-        message = from_dict(WS_Message, json.loads(msg))
+        data = json.loads(msg)
+        if data["channel"] == "heartbeats":
+            return
+        if "type" in data:
+            print(data)
+            return
+
+        try:
+            message = from_dict(WS_Message, data)
+        except KeyError:
+            print(f"Received message without proper data structure: {data}")
+            return
         event = message.events[0]
         if event.type == "snapshot":
             return
         for order in event.orders or []:
-            if order.cumulative_quantity == "0":
-                continue
             self.handleOrder(order)
 
     def on_open(self) -> None:
@@ -67,7 +76,7 @@ class EnhancedWSClient(WSClient):
 
     def attempt_reconnect(self) -> None:
         self.reconnect_attempts += 1
-        wait_time = min(2**self.reconnect_attempts, 30)
+        wait_time = min(2**self.reconnect_attempts, 2)
         print(f"Attempting to reconnect in {wait_time} seconds...")
         time.sleep(wait_time)
         try:

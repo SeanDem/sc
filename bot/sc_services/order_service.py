@@ -1,9 +1,9 @@
 import uuid
 from decimal import Decimal, ROUND_DOWN
 from coinbase.rest import RESTClient
-from sc_services.account_service import AccountService
-from sc_types import *
-from config import config
+from bot.sc_services.account_service import AccountService
+from bot.sc_types import *
+from bot.config import config
 
 
 class OrderService:
@@ -46,6 +46,8 @@ class OrderService:
         )
         if not response["success"]:
             print(f"Failed to create buy order for {pair.value}: {response}")
+            usdc_available = self.accountService.get_usdc_available_to_trade()
+            print(f"Available USDC: {usdc_available}")
         else:
             print(
                 f"Created buy order for {pair.value}: {adjusted_qty} at {adjusted_price}"
@@ -70,36 +72,28 @@ class OrderService:
             limit_price=adjusted_price,
         )
         if not response["success"]:
-            print(f"Failed to create buy order for {pair.value}: {response}")
+            print(f"Failed to create sell order for {pair.value}: {response}")
         else:
             print(
                 f"Created sell order for {pair.value}: {adjusted_qty} at {adjusted_price}"
             )
 
     def attempt_buy(self, pair: CurrencyPair, qty: str, price: str) -> None:
-        print(f"Attempting to buy {qty} {pair.value} at {price}")
-        usdc_available = self.accountService.get_usdc_available_to_trade()
-        qty_float = Decimal(qty)
-        usdc_available_float = Decimal(usdc_available)
-        qty_to_order = min(usdc_available_float, qty_float)
-        if usdc_available > qty_to_order:
-            self.buyOrder(pair, price=price, qty=str(qty_to_order))
-        else:
-            print(f"Insufficient {pair.value} available to buy")
-            print(
-                f"Available USDC: {usdc_available_float:.4f}, Requested: {qty_float:.4f}"
-            )
+        qty_decimal = Decimal(qty)
+        self.buyOrder(pair, price=price, qty=str(qty_decimal))
 
     def attempt_sell(self, pair: CurrencyPair, qty: str, price: str) -> None:
-        print(f"Attempting to sell {qty} {pair.value} at {price}")
         token_available = self.accountService.get_token_available_to_trade(pair)
-        qty_float = Decimal(qty)
-        token_available_float = Decimal(token_available)
-        qty_to_order = min(token_available_float, qty_float)
-        if token_available_float > qty_to_order:
-            self.sellOrder(pair, price=price, qty=str(qty_to_order))
+        qty_decimal = Decimal(qty)
+        token_available_decimal = Decimal(token_available)
+        print(
+            f"token_available: {token_available_decimal:.4f}, qty_decimal: {qty_decimal:.4f}"
+        )
+
+        if token_available_decimal > qty_decimal:
+            self.sellOrder(pair, price=price, qty=str(qty_decimal))
         else:
             print(f"Insufficient {pair.value} available to sell")
             print(
-                f"Available token: {token_available_float:.4f}, Requested: {qty_float:.4f}"
+                f"Available token: {token_available_decimal:.4f}, Requested: {qty_decimal:.4f}"
             )

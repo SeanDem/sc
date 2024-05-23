@@ -1,13 +1,14 @@
-from decimal import Decimal
+import numpy as np
+from decimal import ROUND_DOWN, Decimal
 from logging import config
+from os import error
 import time
 from typing import LiteralString
-from uu import Error
 from coinbase.rest import RESTClient
 from dacite import from_dict
-from sc_types import *
-from sc_services import *
-from config import config
+from bot.sc_types import *
+from bot.sc_services import *
+from bot.config import config
 
 
 class SetupService:
@@ -37,55 +38,62 @@ class SetupService:
 
     def re_balance_pair(self, pair: CurrencyPair) -> None:
         self.cancel_orders(pair)
-        time.sleep(15)
         self.setup_initial_orders(config[pair])
 
     def setup_initial_orders(self, config: CurrencyPairConfig) -> None:
         print(f"Setting up initial orders for {config.pair.value}...")
-        token_amt = self.accountService.get_token_available_to_trade(config.pair)
-
+        token_amt = Decimal(
+            self.accountService.get_token_available_to_trade(config.pair)
+        )
         account_balance = self.accountService.get_account_balance()
-        funds_allocated = (
-            Decimal(account_balance) * Decimal(config.percent_of_funds)
-        ) - Decimal(token_amt)
+        funds_allocated = Decimal(account_balance) * Decimal(config.percent_of_funds)
+        usdc_allocated = funds_allocated - Decimal(token_amt)
         print(f"Total account balance: {float(account_balance):.2f} USD")
         print(
             f"Allocated for trading on {config.pair.value}: {funds_allocated:.2f} USD"
         )
         print(f"Available {config.pair.value.split('-')[0]} tokens: {token_amt:.4f}")
-        print(f"USDC allocated for buying: {funds_allocated:.2f} USD")
+        print(f"USDC allocated for buying: {usdc_allocated:.2f} USD")
 
         buy_prices = self.generate_order_distribution(
             float(config.buy_range.start),
-            min(float(config.buy_range.end), float(config.max_buy_price)),
+            float(config.buy_range.end),
             config.buy_range.num_steps,
+            config.buy_range.skew,
         )
-        buy_qty = "{:.4f}".format(funds_allocated / len(buy_prices))
-        for price in buy_prices:
-            time.sleep(0.1)
-            self.orderService.attempt_buy(config.pair, buy_qty, price)
-            self.orderBook.update_order(
-                config.pair, OrderSide.BUY, price, amount=buy_qty
-            )
+
+        buy_qty: Decimal = usdc_allocated / config.buy_range.num_steps
+        buy_qty = self.adjust_precision(buy_qty)
+        if Decimal(buy_qty) > Decimal(0.05):
+            for price in buy_prices:
+                time.sleep(0.15)
+                self.orderService.attempt_buy(config.pair, str(buy_qty), price)
+                self.orderBook.update_order(
+                    config.pair, OrderSide.BUY, price, str(buy_qty)
+                )
 
         sell_prices = self.generate_order_distribution(
-            max(float(config.sell_range.start), float(config.min_sell_price)),
+            float(config.sell_range.start),
             float(config.sell_range.end),
             config.sell_range.num_steps,
+            config.sell_range.skew,
         )
-        sell_qty = "{:.4f}".format(token_amt / len(sell_prices))
-        for price in sell_prices:
-            time.sleep(0.1)
-            self.orderService.attempt_sell(config.pair, sell_qty, price)
-            self.orderBook.update_order(config.pair, OrderSide.SELL, price, sell_qty)
+        sell_qty = token_amt / len(sell_prices)
+        sell_qty = self.adjust_precision(sell_qty)
+        if Decimal(sell_qty) > Decimal(0.05):
+            for price in sell_prices:
+                time.sleep(0.15)
+                self.orderService.attempt_sell(config.pair, str(sell_qty), price)
+                self.orderBook.update_order(
+                    config.pair, OrderSide.SELL, price, str(sell_qty)
+                )
 
-    def cancel_and_verify_orders(self, orderIds, max_retries=3):
+    def cancel_and_verify_orders(self, orderIds, max_retries=15):
         if orderIds:
             self.api_client.cancel_orders(orderIds)
-
             retries = 0
             while retries < max_retries:
-                time.sleep(3)
+                time.sleep(1)
                 print(
                     f"Checking if all orders have been cancelled... (Attempt {retries + 1})"
                 )
@@ -104,6 +112,7 @@ class SetupService:
                 retries += 1
             else:
                 print(f"All orders could not be cancelled after {max_retries} retries.")
+        time.sleep(15)
 
     def cancel_orders(self, pair: CurrencyPair) -> None:
         print(f"Cancelling orders for {pair.value}...")
@@ -124,13 +133,20 @@ class SetupService:
         self.cancel_and_verify_orders(orderIds, max_retries)
 
     def generate_order_distribution(
-        self, min_val: float, max_val: float, amount: int
-    ) -> list:
-        if amount == 1:
-            return [f"{min_val:.4f}"]
-        step = (max_val - min_val) / (amount - 1)
-        distribution = [min_val + i * step for i in range(amount)]
-        return [f"{num:.4f}" for num in distribution]
+        self, min_val: float, max_val: float, amount: int, skew=None
+    ):
+        x = np.linspace(0, 1, amount)
+        if skew is not None:
+            factor = skew.factor
+            if skew.direction == SkewDirection.END:
+                x = x ** (1 / factor)
+            elif skew.direction == SkewDirection.START:
+                x = 1 - (1 - x) ** (1 / factor)
+            elif skew.direction == SkewDirection.MID:
+                x = np.sin(x * np.pi - np.pi / 2 + np.pi * factor / 2) / 2 + 0.5
+        distribution = min_val + (max_val - min_val) * x
+        print(f"Generated distribution: {distribution}")
+        return distribution
 
     def validate_configs(self) -> LiteralString | None:
         errors = []
@@ -139,7 +155,7 @@ class SetupService:
             try:
                 percent_funds = Decimal(settings.percent_of_funds)
                 total_percent += percent_funds
-                if not (0 < percent_funds < 1):
+                if not (0 <= percent_funds <= 1):
                     errors.append(
                         f"{pair}: percent_of_funds {settings.percent_of_funds} should be between 0 and 1."
                     )
@@ -147,7 +163,6 @@ class SetupService:
                 errors.append(
                     f"{pair}: Invalid percent_of_funds value {settings.percent_of_funds}."
                 )
-
             try:
                 buy_start = Decimal(settings.buy_range.start)
                 buy_end = Decimal(settings.buy_range.end)
@@ -170,6 +185,9 @@ class SetupService:
             )
         if errors:
             print("Errors found in configurations:")
-            raise Error("\n".join(errors))
+            raise error("\n".join(errors))
         else:
             print("All configurations are logically sound.")
+
+    def adjust_precision(self, size: Decimal, decimals=4) -> Decimal:
+        return size.quantize(Decimal("1." + "0" * decimals), rounding=ROUND_DOWN)
