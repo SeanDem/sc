@@ -1,31 +1,26 @@
-from turtle import setup
 import numpy as np
 from decimal import ROUND_DOWN, Decimal
-from logging import config
 from os import error
 import time
 from typing import LiteralString
 from coinbase.rest import RESTClient
 from dacite import from_dict
+
+from bot.other.singleton_base import SingletonBase
 from bot.sc_types import *
 from bot.sc_services import *
-from bot.config import config
+from bot.config import sc_config
 
 
-class SetupService:
+class SetupService(SingletonBase):
     def __init__(
         self,
-        accountService = account_service_singleton,
-        orderService = order_service_singleton,
-        orderBook = order_book_singleton,
-        api_client = rest_client_singleton,
-        config: dict[CurrencyPair, CurrencyPairConfig] = config,
     ) -> None:
-        self.accountService: AccountService = accountService
-        self.orderService: OrderService = orderService
-        self.orderBook: OrderBook = orderBook
-        self.api_client: RESTClient = api_client
-        self.config = config
+        self.accountService: AccountService = AccountService.get_instance()
+        self.orderService: OrderService = OrderService.get_instance()
+        self.orderBook: OrderBook = OrderBook.get_instance()
+        self.api_client: RESTClient = EnhancedRestClient.get_instance()
+        self.config = sc_config
 
     def start(self) -> None:
         self.validate_configs()
@@ -39,7 +34,7 @@ class SetupService:
 
     def re_balance_pair(self, pair: CurrencyPair) -> None:
         self.cancel_orders(pair)
-        self.setup_initial_orders(config[pair])
+        self.setup_initial_orders(self.config[pair])
 
     def setup_initial_orders(self, config: CurrencyPairConfig) -> None:
         print(f"Setting up initial orders for {config.pair.value}...")
@@ -202,5 +197,3 @@ class SetupService:
 
     def adjust_precision(self, size: Decimal, decimals=4) -> Decimal:
         return size.quantize(Decimal("1." + "0" * decimals), rounding=ROUND_DOWN)
-
-setup_service_singleton = SetupService()

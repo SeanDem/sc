@@ -1,11 +1,12 @@
 from collections import defaultdict
 from decimal import Decimal
 from typing import Dict, List, Tuple
+from ..other.singleton_base import SingletonBase
 from bot.sc_types import *
 from typing import Dict
 
 
-class OrderBook:
+class OrderBook(SingletonBase):
     def __init__(self):
         self.orders: Dict[str, Dict[str, Dict[str, Dict[str, str]]]] = defaultdict(
             lambda: defaultdict(lambda: defaultdict(dict))
@@ -63,5 +64,3 @@ class OrderBook:
             (order_id, amount, price)
             for order_id, amount, price in order_list[:num_ids]
         ]
-
-order_book_singleton = OrderBook()

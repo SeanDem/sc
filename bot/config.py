@@ -1,7 +1,9 @@
+from dataclasses import dataclass
 from bot.sc_types import *
 from bot.sc_services import *
 
-config: dict[CurrencyPair, CurrencyPairConfig] = {
+
+sc_config: dict[CurrencyPair, CurrencyPairConfig] = {
     CurrencyPair.DAI_USDC: CurrencyPairConfig(
         CurrencyPair.DAI_USDC,
         4,

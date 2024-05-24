@@ -1,14 +1,14 @@
 from decimal import Decimal
 from dacite import from_dict
-from coinbase.rest import RESTClient
+from bot.other.singleton_base import SingletonBase
 from bot.sc_types import *
 from bot.sc_services import *
 from dacite import from_dict
 
 
-class AccountService:
-    def __init__(self, api_client=rest_client_singleton) -> None:
-        self.api_client = api_client
+class AccountService(SingletonBase):
+    def __init__(self) -> None:
+        self.api_client = EnhancedRestClient.get_instance()
         self.uuid = "5218e553-84ec-54ec-a572-df8243f3d5ba"
 
     def getPortfolioBreakdown(self) -> PortfolioBreakdown:
@@ -63,6 +63,3 @@ class AccountService:
     def get_account_balance(self) -> str:
         portfolio = self.getPortfolioBreakdown()
         return portfolio.breakdown.portfolio_balances.total_balance.value
-
-
-account_service_singleton: AccountService = AccountService(RESTClient())

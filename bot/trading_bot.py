@@ -1,29 +1,33 @@
+from concurrent.futures import ThreadPoolExecutor
 from decimal import Decimal
+import json
 from threading import Thread
 import time
+
+from dacite import from_dict
 from bot.sc_types import *
 from bot.sc_services import *
-from bot.config import config
+from bot.config import sc_config
 
 
 class TradingBot:
     def __init__(self) -> None:
 
-        self.config = config
-        self.api_client = rest_client_singleton
-        self.accountService = account_service_singleton
-        self.setupService = setup_service_singleton
-        self.eventService = ws_client_singleton
-        self.orderService = order_service_singleton
-        self.orderBook = order_book_singleton
-        self.tokenService = token_service_singleton
+        self.config = sc_config
         self.seen_order_ids = set[str]()
+        self.executor = ThreadPoolExecutor(20)
+        self.api_client = EnhancedRestClient.get_instance()
+        self.accountService = AccountService.get_instance()
+        self.setupService = SetupService.get_instance()
+        self.ws = EnhancedWSClient.get_instance(on_message=self.on_message)
+        self.orderService = OrderService.get_instance()
+        self.orderBook = OrderBook.get_instance()
 
     def start(self) -> None:
         periodic_thread = Thread(target=self.setup)
         periodic_thread.start()
         self.accountService.getPortfolioBreakdown()
-        self.eventService.start()
+        self.ws.start()
 
     def setup(self) -> None:
         print("Starting setup thread")
@@ -125,3 +129,20 @@ class TradingBot:
                 qty=str(qty),
                 price=str(price),
             )
+
+    def on_message(self, msg: str) -> None:
+        data = json.loads(msg)
+        if "type" in data:
+            return
+
+        message = from_dict(WS_Message, data)
+        if message.channel == "ticker_batch":
+            if message.events[0].tickers:
+                self.ticker_data = message.events[0].tickers[0]
+            return
+
+        event = message.events[0]
+        for order in event.orders or []:
+            if order.status != OrderStatus.FILLED.value:
+                return
+            self.executor.submit(self.handle_order, order)

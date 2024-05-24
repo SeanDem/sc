@@ -13,6 +13,7 @@ from bot.sc_types.setup_types import RangeConfig
 from bot.sc_types.setup_types import CurrencyPairConfig
 from bot.sc_types.setup_types import Skew
 from bot.sc_types.setup_types import SkewDirection
+from bot.sc_types.event_types import TickerEvent
 
 __all__ = [
     "Portfolios",
@@ -30,4 +31,5 @@ __all__ = [
     "CurrencyPairConfig",
     "Skew",
     "SkewDirection",
+    "TickerEvent"
 ]
