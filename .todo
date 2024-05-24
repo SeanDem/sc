@@ -1,3 +1,8 @@
-[] Open Orders usdc amt bug 
-() cancel largest order to replace filled orders 
-        can also create two - smaller orders instead 
+[] - check current price before placing orders 
+        -do not place a taker order!
+[] - cancel largest order to replace filled orders 
+        bottom n or n largest cancel to refill n + 1 
+[] - better order cancellation logic +  service 
+[] - pending tx bug
+[] - better service split, particularly ws_client 
+[] - check on threading 

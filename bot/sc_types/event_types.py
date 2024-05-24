@@ -19,10 +19,28 @@ class OrderEvent:
     stop_price: Optional[str] = "0"
 
 
+@dataclass()
+class TickerEvent:
+    type: str
+    product_id: str
+    price: str
+    volume_24_h: str
+    low_24_h: str
+    high_24_h: str
+    low_52_w: str
+    high_52_w: str
+    price_percent_chg_24_h: str
+    best_bid: str
+    best_bid_quantity: str
+    best_ask: str
+    best_ask_quantity: str
+
+
 @dataclass
 class Event:
     type: Optional[str]
     orders: Optional[List[OrderEvent]] = field(default_factory=list)
+    tickers: Optional[List[TickerEvent]] = field(default_factory=list)
 
 
 @dataclass

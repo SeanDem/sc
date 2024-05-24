@@ -1,3 +1,4 @@
+from turtle import setup
 import numpy as np
 from decimal import ROUND_DOWN, Decimal
 from logging import config
@@ -14,10 +15,10 @@ from bot.config import config
 class SetupService:
     def __init__(
         self,
-        accountService,
-        orderService,
-        orderBook,
-        api_client,
+        accountService = account_service_singleton,
+        orderService = order_service_singleton,
+        orderBook = order_book_singleton,
+        api_client = rest_client_singleton,
         config: dict[CurrencyPair, CurrencyPairConfig] = config,
     ) -> None:
         self.accountService: AccountService = accountService
@@ -45,15 +46,14 @@ class SetupService:
         token_amt = Decimal(
             self.accountService.get_token_available_to_trade(config.pair)
         )
+
         account_balance = self.accountService.get_account_balance()
         funds_allocated = Decimal(account_balance) * Decimal(config.percent_of_funds)
-        usdc_allocated = funds_allocated - Decimal(token_amt)
-        print(f"Total account balance: {float(account_balance):.2f} USD")
-        print(
-            f"Allocated for trading on {config.pair.value}: {funds_allocated:.2f} USD"
-        )
-        print(f"Available {config.pair.value.split('-')[0]} tokens: {token_amt:.4f}")
-        print(f"USDC allocated for buying: {usdc_allocated:.2f} USD")
+        usdc_available: Decimal = funds_allocated - Decimal(token_amt)
+        print(f"Account balance: {float(account_balance):.2f} USD")
+        print(f"Allocated {config.pair.value}: {funds_allocated:.2f} USD")
+        print(f"Available {config.pair.value.split('-')[0]}: {token_amt:.4f}")
+        print(f"Available USDC: {usdc_available:.4f} USD")
 
         buy_prices = self.generate_order_distribution(
             float(config.buy_range.start),
@@ -62,15 +62,20 @@ class SetupService:
             config.buy_range.skew,
         )
 
-        buy_qty: Decimal = usdc_allocated / config.buy_range.num_steps
+        buy_qty: Decimal = usdc_available / config.buy_range.num_steps
         buy_qty = self.adjust_precision(buy_qty)
         if Decimal(buy_qty) > Decimal(0.05):
             for price in buy_prices:
                 time.sleep(0.15)
-                self.orderService.attempt_buy(config.pair, str(buy_qty), price)
-                self.orderBook.update_order(
-                    config.pair, OrderSide.BUY, price, str(buy_qty)
-                )
+                order_id = self.orderService.buy_order(config.pair, str(buy_qty), price)
+                if order_id:
+                    self.orderBook.update_order(
+                        config.pair,
+                        OrderSide.BUY,
+                        price,
+                        order_id,
+                        str(buy_qty),
+                    )
 
         sell_prices = self.generate_order_distribution(
             float(config.sell_range.start),
@@ -78,41 +83,43 @@ class SetupService:
             config.sell_range.num_steps,
             config.sell_range.skew,
         )
-        sell_qty = token_amt / len(sell_prices)
+        sell_qty = token_amt / config.sell_range.num_steps
         sell_qty = self.adjust_precision(sell_qty)
+        print(f"Token amount: {token_amt}")
+        print(f"Sell quantity: {sell_qty}")
         if Decimal(sell_qty) > Decimal(0.05):
             for price in sell_prices:
                 time.sleep(0.15)
-                self.orderService.attempt_sell(config.pair, str(sell_qty), price)
-                self.orderBook.update_order(
-                    config.pair, OrderSide.SELL, price, str(sell_qty)
+                order_id = self.orderService.attempt_sell(
+                    config.pair, str(buy_qty), price
                 )
+                if order_id:
+                    self.orderBook.update_order(
+                        config.pair,
+                        OrderSide.SELL,
+                        price,
+                        order_id,
+                        str(buy_qty),
+                    )
 
     def cancel_and_verify_orders(self, orderIds, max_retries=15):
         if orderIds:
             self.api_client.cancel_orders(orderIds)
             retries = 0
             while retries < max_retries:
-                time.sleep(1)
-                print(
-                    f"Checking if all orders have been cancelled... (Attempt {retries + 1})"
-                )
-                try:
-                    data = self.api_client.list_orders()
-                    orders = from_dict(AllOrdersList, data)
-                    if all(
-                        order.status == "CANCELLED"
-                        for order in orders.orders
-                        if order.order_id in orderIds
-                    ):
-                        print("All orders have been cancelled!")
-                        break
-                except Exception as e:
-                    print(f"An error occurred: {e}")
+                time.sleep(0.1)
+                data = self.api_client.list_orders()
+                orders = from_dict(AllOrdersList, data)
+                if all(
+                    order.status == OrderStatus.CANCELLED.value
+                    for order in orders.orders
+                    if order.order_id in orderIds
+                ):
+                    print("All orders have been cancelled!")
+                    break
                 retries += 1
             else:
                 print(f"All orders could not be cancelled after {max_retries} retries.")
-        time.sleep(15)
 
     def cancel_orders(self, pair: CurrencyPair) -> None:
         print(f"Cancelling orders for {pair.value}...")
@@ -129,7 +136,11 @@ class SetupService:
         print("Cancelling all orders...")
         data = self.api_client.list_orders()
         orders = from_dict(AllOrdersList, data)
-        orderIds = [order.order_id for order in orders.orders if order.status == "OPEN"]
+        orderIds = [
+            order.order_id
+            for order in orders.orders
+            if order.status == "OPEN" or order.status == "PENDING"
+        ]
         self.cancel_and_verify_orders(orderIds, max_retries)
 
     def generate_order_distribution(
@@ -191,3 +202,5 @@ class SetupService:
 
     def adjust_precision(self, size: Decimal, decimals=4) -> Decimal:
         return size.quantize(Decimal("1." + "0" * decimals), rounding=ROUND_DOWN)
+
+setup_service_singleton = SetupService()
