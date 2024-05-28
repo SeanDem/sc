@@ -12,20 +12,19 @@ This trading bot is designed to automate the process of buying and selling stabl
 ## Requirements
 
 - Python 3.8 or higher
-- `requests` library for API requests
-- `decimal` library for precision decimal operations
-- A Coinbase Pro API key, API secret, and passphrase
+- A Coinbase Pro Advanced API
 
 ## Setup
 
 1. Clone the repository:
-git clone https://github.com/your-username/stablecoin-trading-bot.git
-cd stablecoin-trading-bot
+  git clone [https://github.com/your-username/stablecoin-trading-bot.git](https://github.com/SeanDem/sc/)
+  cd sc
 2. Install required Python packages:
+  pip install -r requirements.txt
 3. Set up your API credentials in a secure configuration file or environment variables:
-export API_KEY='your_api_key'
-export API_SECRET='your_api_secret'
-export API_PASSPHRASE='your_api_passphrase'
+  export API_KEY='your_api_key'
+  export API_SECRET='your_api_secret'
+  export API_PASSPHRASE='your_api_passphrase'
 
 
 ## Configuration
@@ -52,8 +51,4 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 ## Contributing
 
 Contributions are welcome. Please fork the repository and submit a pull request with your suggested changes.
-
-## Support
-
-If you encounter any issues or have questions about setting up or configuring the bot, please open an issue in the repository or contact the maintainer at your-email@example.com.
 
