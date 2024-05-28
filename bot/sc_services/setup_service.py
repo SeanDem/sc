@@ -53,7 +53,7 @@ class SetupService(SingletonBase):
         )
 
         buy_qty: Decimal = usdc_available / config.buy_range.num_steps
-        buy_qty = self.adjust_precision(buy_qty) - 1  # TODO -1 for testing
+        buy_qty = self.adjust_precision(buy_qty)
         if Decimal(buy_qty) > Decimal(0.05):
             for price in buy_prices:
                 time.sleep(0.15)
