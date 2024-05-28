@@ -33,11 +33,11 @@ class OrderService(SingletonBase):
             print(f"Buy price too high for {pair.value} at {price}")
             return
 
-        best_bid = Decimal(self.tokenService.ticker_data[pair.value].best_bid)
-        if Decimal(price) > best_bid:
-            print(f"Buy price above {best_bid} at {price}")
-            print(f"Adjusting price to {best_bid}")
-            price = str(best_bid - Decimal("0.0001"))
+        best_ask = Decimal(self.tokenService.ticker_data[pair.value].best_ask)
+        if Decimal(price) >= best_ask:
+            print(f"Buy price at or above above best ask {best_ask} at {price}")
+            price = str(best_ask - Decimal("0.0001"))
+            print(f"Adjusting price to {price}")
 
         orderId = self.generate_order_id()
         adjusted_qty = self.adjust_precision(qty, self.config[pair].qty_precision)
@@ -65,11 +65,11 @@ class OrderService(SingletonBase):
             print(f"Sell price too low for {pair.value} at {price}")
             return
 
-        best_ask = Decimal(self.tokenService.ticker_data[pair.value].best_ask)
-        if Decimal(price) < best_ask:
-            print(f"Sell price below {best_ask} at {price}")
+        best_bid = Decimal(self.tokenService.ticker_data[pair.value].best_bid)
+        if Decimal(price) <= best_bid:
+            print(f"Sell price at or below best bid {best_bid} at {price}")
+            price = str(best_bid + Decimal("0.0001"))
             print(f"Adjusting price to {price}")
-            price = str(best_ask + Decimal("0.0001"))
 
         orderId = self.generate_order_id()
         adjusted_qty = self.adjust_precision(qty, self.config[pair].qty_precision)
