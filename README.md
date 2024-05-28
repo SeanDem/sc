@@ -17,21 +17,21 @@ This trading bot is designed to automate the process of buying and selling stabl
 ## Setup
 
 1. Clone the repository:
-  git clone [https://github.com/your-username/stablecoin-trading-bot.git](https://github.com/SeanDem/sc/)
-  cd sc
+git clone [https://github.com/your-username/stablecoin-trading-bot.git](https://github.com/SeanDem/sc/)
+cd sc
 2. Install required Python packages:
-  pip install -r requirements.txt
+pip install -r requirements.txt
 3. Set up your API credentials in a secure configuration file or environment variables:
-  export API_KEY='your_api_key'
-  export API_SECRET='your_api_secret'
-  export API_PASSPHRASE='your_api_passphrase'
+export API_KEY='your_api_key'
+export API_SECRET='your_api_secret'
+export API_PASSPHRASE='your_api_passphrase'
 
 
 ## Configuration
 
 Modify the `config.json` file to set up your trading parameters, including:
 - Target coin pair
-!! List any additional configuration parameters you might have discussed or considered.
+List any additional configuration parameters you might have discussed or considered.
 
 ## Usage
 
