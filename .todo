@@ -1,8 +1,13 @@
-[] - check current price before placing orders 
-        -do not place a taker order!
-[] - cancel largest order to replace filled orders 
+IN PROGRESS
+[~] - cancel largest order to replace filled orders 
         bottom n or n largest cancel to refill n + 1 
-[] - better order cancellation logic +  service 
-[] - pending tx bug
-[] - better service split, particularly ws_client 
+[~] - better service split, particularly ws_client
+
+TODO
+[] - better order cancellation logic as standalone service
 [] - check on threading 
+
+DONE
+[x] - each split ws thread may need heartbeat 
+[x] - pending tx bug
+[x] - check current price before placing orders

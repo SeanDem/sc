@@ -37,7 +37,7 @@ class TickerEvent:
 
 
 @dataclass
-class Event:
+class WS_Event:
     type: Optional[str]
     orders: Optional[List[OrderEvent]] = field(default_factory=list)
     tickers: Optional[List[TickerEvent]] = field(default_factory=list)
@@ -49,4 +49,4 @@ class WS_Message:
     client_id: str
     timestamp: str
     sequence_num: int
-    events: List[Event]
+    events: List[WS_Event]

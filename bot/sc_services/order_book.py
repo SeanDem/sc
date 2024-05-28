@@ -1,7 +1,8 @@
 from collections import defaultdict
 from decimal import Decimal
 from typing import Dict, List, Tuple
-from ..other.singleton_base import SingletonBase
+from bot.other import *
+from bot.sc_services import *
 from bot.sc_types import *
 from typing import Dict
 

@@ -41,12 +41,7 @@ class SetupService(SingletonBase):
         token_amt = Decimal(
             self.accountService.get_token_available_to_trade(config.pair)
         )
-
-        account_balance = self.accountService.get_account_balance()
-        funds_allocated = Decimal(account_balance) * Decimal(config.percent_of_funds)
-        usdc_available: Decimal = funds_allocated - Decimal(token_amt)
-        print(f"Account balance: {float(account_balance):.2f} USD")
-        print(f"Allocated {config.pair.value}: {funds_allocated:.2f} USD")
+        usdc_available = self.accountService.get_usdc_available_to_trade()
         print(f"Available {config.pair.value.split('-')[0]}: {token_amt:.4f}")
         print(f"Available USDC: {usdc_available:.4f} USD")
 
@@ -58,7 +53,7 @@ class SetupService(SingletonBase):
         )
 
         buy_qty: Decimal = usdc_available / config.buy_range.num_steps
-        buy_qty = self.adjust_precision(buy_qty)
+        buy_qty = self.adjust_precision(buy_qty) - 1  # TODO -1 for testing
         if Decimal(buy_qty) > Decimal(0.05):
             for price in buy_prices:
                 time.sleep(0.15)
@@ -80,13 +75,13 @@ class SetupService(SingletonBase):
         )
         sell_qty = token_amt / config.sell_range.num_steps
         sell_qty = self.adjust_precision(sell_qty)
-        print(f"Token amount: {token_amt}")
-        print(f"Sell quantity: {sell_qty}")
+        print(f"Token amount: {token_amt:.4f}")
+        print(f"Sell quantity: {sell_qty:.4f}")
         if Decimal(sell_qty) > Decimal(0.05):
             for price in sell_prices:
                 time.sleep(0.15)
-                order_id = self.orderService.attempt_sell(
-                    config.pair, str(buy_qty), price
+                order_id = self.orderService.sell_order(
+                    config.pair, str(sell_qty), price
                 )
                 if order_id:
                     self.orderBook.update_order(
@@ -94,10 +89,10 @@ class SetupService(SingletonBase):
                         OrderSide.SELL,
                         price,
                         order_id,
-                        str(buy_qty),
+                        str(sell_qty),
                     )
 
-    def cancel_and_verify_orders(self, orderIds, max_retries=15):
+    def cancel_and_verify_orders(self, orderIds, max_retries=20) -> None:
         if orderIds:
             self.api_client.cancel_orders(orderIds)
             retries = 0
@@ -115,6 +110,7 @@ class SetupService(SingletonBase):
                 retries += 1
             else:
                 print(f"All orders could not be cancelled after {max_retries} retries.")
+            time.sleep(15)
 
     def cancel_orders(self, pair: CurrencyPair) -> None:
         print(f"Cancelling orders for {pair.value}...")
@@ -127,7 +123,7 @@ class SetupService(SingletonBase):
         ]
         self.cancel_and_verify_orders(orderIds)
 
-    def cancel_all_orders(self, max_retries: int = 3) -> None:
+    def cancel_all_orders(self) -> None:
         print("Cancelling all orders...")
         data = self.api_client.list_orders()
         orders = from_dict(AllOrdersList, data)
@@ -136,7 +132,7 @@ class SetupService(SingletonBase):
             for order in orders.orders
             if order.status == "OPEN" or order.status == "PENDING"
         ]
-        self.cancel_and_verify_orders(orderIds, max_retries)
+        self.cancel_and_verify_orders(orderIds)
 
     def generate_order_distribution(
         self, min_val: float, max_val: float, amount: int, skew=None
