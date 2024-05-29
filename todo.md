@@ -2,18 +2,19 @@
 
 ## IN PROGRESS
 
+- [ ] Better order cancellation logic and standalone service
+- [ ] Auto orderBook updating with functions. orderbook is also broken
+
 ### TODO
 
-- [ ] Better order cancellation logic and standalone service
-- [ ] Auto orderBook updating with functions. it's out of sync
 - [ ] Double orders on setup
 - [ ] Check on threading
-- [ ] Add logging
 - [ ] Add more error handling
 - [ ] Add more tests
 
 ### DONE
 
+- [x] Add logging
 - [x] Each split ws thread may need heartbeat
 - [x] Pending tx bug
 - [x] Check current price before placing orders
