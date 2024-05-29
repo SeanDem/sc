@@ -5,6 +5,8 @@
 ### TODO
 
 - [ ] Better order cancellation logic and standalone service
+- [ ] Auto orderBook updating with functions. it's out of sync
+- [ ] Double orders on setup
 - [ ] Check on threading
 - [ ] Add logging
 - [ ] Add more error handling

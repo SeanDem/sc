@@ -39,7 +39,7 @@ class TokenService(SingletonBase):
             )
             self.ws.run_forever_with_exception_check()
         except Exception as e:
-            print(f"TOKEN_SERVICE ERROR: {e}")
+            LOGGER.info(f"TOKEN_SERVICE ERROR: {e}")
         finally:
             self.ws.close()
 
@@ -53,10 +53,10 @@ class TokenService(SingletonBase):
             self.ticker_data[ticker.product_id] = ticker
 
     def on_open(self) -> None:
-        print("WebSocket is now open!")
+        LOGGER.info("WebSocket is now open!")
 
     def on_close(self) -> None:
-        print("WebSocket closed")
+        LOGGER.info("WebSocket closed")
 
     def USDC_NORMALIZER(self, usc: str) -> str:
         if not usc.endswith("USDC"):

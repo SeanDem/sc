@@ -1,8 +1,9 @@
 from decimal import Decimal
 import json
-import time
+from threading import Timer
 
 from dacite import from_dict
+from .other.logger import LOGGER
 from bot.sc_services.rest_client import EnhancedRestClient
 from bot.sc_types import *
 from bot.sc_services import *
@@ -20,6 +21,7 @@ class TradingBot:
         self.userOrdersService = UserOrdersService.get_instance(
             on_message=self.on_message
         )
+        self.cancelled_orders = set[str]()
         self.orderService = OrderService.get_instance()
         self.orderBook = OrderBook.get_instance()
 
@@ -30,25 +32,28 @@ class TradingBot:
 
     def setup(self) -> None:
         self.setupService.start()
-        while True:
-            hour: int = 60 * 60
-            hours_sleep = 2
-            time.sleep(hours_sleep * hour)
-            print(f"{hours_sleep} hours has passed, re-balancing all pairs...")
+        self.schedule_rebalance()
+
+    def schedule_rebalance(self) -> None:
+        LOGGER.info("Scheduling re-balance every 30 minutes...")
+
+        def rebalance():
             self.setupService.re_balance_All()
+            LOGGER.info("30 minutes have passed, re-balancing all pairs...")
+            Timer(60 * 30, rebalance).start()
+
+        Timer(60 * 30, rebalance).start()
 
     def handle_order(self, order: OrderEvent) -> None:
         self.seen_order_ids.add(order.order_id)
         if order.status == OrderStatus.FILLED.value:
-            print(f"Order event filled: {order}")
             if order.order_side == OrderSide.BUY.value:
                 self.handle_buy_order(order)
             elif order.order_side == OrderSide.SELL.value:
                 self.handle_sell_order(order)
 
     def handle_buy_order(self, order: OrderEvent) -> None:
-
-        print(
+        LOGGER.info(
             f"Buy order event filled for {order.product_id}: {order.cumulative_quantity} at {order.avg_price} USDC"
         )
         self.orderBook.clear_order(
@@ -71,26 +76,26 @@ class TradingBot:
                 price,
             )
 
-        max_amount_buy_orders = self.orderBook.get_top_orders(
-            CurrencyPair(order.product_id), OrderSide.BUY, 3, True
-        )
-        max_amount_buy_ids, max_amount_buy_amounts, max_amount_buy_prices = zip(
-            *max_amount_buy_orders
-        )
+        # max_amount_buy_orders = self.orderBook.get_top_orders(
+        #     CurrencyPair(order.product_id), OrderSide.BUY, 3, True
+        # )
+        # max_amount_buy_ids, max_amount_buy_amounts, max_amount_buy_prices = zip(
+        #     *max_amount_buy_orders
+        # )
 
-        self.setupService.cancel_and_verify_orders(max_amount_buy_ids)
-        total_qty = sum(max_amount_buy_amounts)
-        new_orders = list(max_amount_buy_prices) + [order.avg_price]
-        qty = total_qty / len(new_orders)
-        for price in new_orders:
-            self.orderService.buy_order(
-                pair=CurrencyPair(order.product_id),
-                qty=str(qty),
-                price=str(price),
-            )
+        # self.setupService.cancel_and_verify_orders(max_amount_buy_ids)
+        # total_qty = sum(max_amount_buy_amounts)
+        # new_orders = list(max_amount_buy_prices) + [order.avg_price]
+        # qty = total_qty / len(new_orders)
+        # for price in new_orders:
+        #     self.orderService.buy_order(
+        #         pair=CurrencyPair(order.product_id),
+        #         qty=str(qty),
+        #         price=str(price),
+        #     )
 
     def handle_sell_order(self, order: OrderEvent) -> None:
-        print(
+        LOGGER.info(
             f"Sell order event filled for {order.product_id}: {order.cumulative_quantity} at {order.avg_price} USDC"
         )
         self.orderBook.clear_order(
@@ -113,25 +118,24 @@ class TradingBot:
                 price,
             )
 
-        min_amount_sell_orders = self.orderBook.get_top_orders(
-            CurrencyPair(order.product_id), OrderSide.SELL, 3, False
-        )
-        min_amount_sell_ids, min_amount_sell_amounts, min_amount_sell_prices = zip(
-            *min_amount_sell_orders
-        )
+        # min_amount_sell_orders = self.orderBook.get_top_orders(
+        #     CurrencyPair(order.product_id), OrderSide.SELL, 3, False
+        # )
+        # min_amount_sell_ids, min_amount_sell_amounts, min_amount_sell_prices = zip(
+        #     *min_amount_sell_orders
+        # )
 
-        self.setupService.cancel_and_verify_orders(min_amount_sell_ids)
+        # self.setupService.cancel_and_verify_orders(min_amount_sell_ids)
 
-        total_qty = sum(min_amount_sell_amounts)
-        new_orders = list(min_amount_sell_prices) + [order.avg_price]
-        qty = total_qty / len(new_orders)
-        
-        for price in new_orders:
-            self.orderService.sell_order(
-                pair=CurrencyPair(order.product_id),
-                qty=str(qty),
-                price=str(price),
-            )
+        # total_qty = sum(min_amount_sell_amounts)
+        # new_orders = list(min_amount_sell_prices) + [order.avg_price]
+        # qty = total_qty / len(new_orders)
+        # for price in new_orders:
+        #     self.orderService.sell_order(
+        #         pair=CurrencyPair(order.product_id),
+        #         qty=str(qty),
+        #         price=str(price),
+        #     )
 
     def on_message(self, msg: str) -> None:
         data = json.loads(msg)

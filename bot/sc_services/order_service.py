@@ -30,14 +30,14 @@ class OrderService(SingletonBase):
         price: str,
     ) -> str | None:
         if Decimal(price) > Decimal(self.config[pair].max_buy_price):
-            print(f"Buy price too high for {pair.value} at {price}")
+            LOGGER.info(f"Buy price too high for {pair.value} at {price}")
             return
 
         best_ask = Decimal(self.tokenService.ticker_data[pair.value].best_ask)
         if Decimal(price) >= best_ask:
-            print(f"Buy price at or above above best ask {best_ask} at {price}")
+            LOGGER.info(f"Buy price at or above above best ask {best_ask} at {price}")
             price = str(best_ask - Decimal("0.0001"))
-            print(f"Adjusting price to {price}")
+            LOGGER.info(f"Adjusting price to {price}")
 
         orderId = self.generate_order_id()
         adjusted_qty = self.adjust_precision(qty, self.config[pair].qty_precision)
@@ -49,10 +49,12 @@ class OrderService(SingletonBase):
             limit_price=adjusted_price,
         )
         if not response["success"]:
-            print(f"Failed to create buy order for {pair.value}")
-            print(response)
+            LOGGER.info(f"Failed to create buy order for {pair.value}")
+            LOGGER.info(response)
         else:
-            print(f"Buy Limit Order {pair.value}: {adjusted_qty} at {adjusted_price}")
+            LOGGER.info(
+                f"Buy Limit Order {pair.value}: {adjusted_qty} at {adjusted_price}"
+            )
             return orderId
 
     def sell_order(
@@ -62,14 +64,14 @@ class OrderService(SingletonBase):
         price: str,
     ) -> str | None:
         if Decimal(price) < Decimal(self.config[pair].min_sell_price):
-            print(f"Sell price too low for {pair.value} at {price}")
+            LOGGER.info(f"Sell price too low for {pair.value} at {price}")
             return
 
         best_bid = Decimal(self.tokenService.ticker_data[pair.value].best_bid)
         if Decimal(price) <= best_bid:
-            print(f"Sell price at or below best bid {best_bid} at {price}")
+            LOGGER.info(f"Sell price at or below best bid {best_bid} at {price}")
             price = str(best_bid + Decimal("0.0001"))
-            print(f"Adjusting price to {price}")
+            LOGGER.info(f"Adjusting price to {price}")
 
         orderId = self.generate_order_id()
         adjusted_qty = self.adjust_precision(qty, self.config[pair].qty_precision)
@@ -81,8 +83,10 @@ class OrderService(SingletonBase):
             limit_price=adjusted_price,
         )
         if not response["success"]:
-            print(f"Failed to create sell order for {pair.value}")
-            print(response)
+            LOGGER.info(f"Failed to create sell order for {pair.value}")
+            LOGGER.info(response)
         else:
-            print(f"Sell limit order {pair.value}: {adjusted_qty} at {adjusted_price}")
+            LOGGER.info(
+                f"Sell limit order {pair.value}: {adjusted_qty} at {adjusted_price}"
+            )
             return orderId

@@ -6,6 +6,7 @@ from typing import LiteralString
 from coinbase.rest import RESTClient
 from dacite import from_dict
 
+from ..other.logger import LOGGER
 from bot.other.singleton_base import SingletonBase
 from bot.sc_types import *
 from bot.sc_services import *
@@ -37,13 +38,13 @@ class SetupService(SingletonBase):
         self.setup_initial_orders(self.config[pair])
 
     def setup_initial_orders(self, config: CurrencyPairConfig) -> None:
-        print(f"Setting up initial orders for {config.pair.value}...")
+        LOGGER.info(f"Setting up initial orders for {config.pair.value}...")
         token_amt = Decimal(
             self.accountService.get_token_available_to_trade(config.pair)
         )
         usdc_available = self.accountService.get_usdc_available_to_trade()
-        print(f"Available {config.pair.value.split('-')[0]}: {token_amt:.4f}")
-        print(f"Available USDC: {usdc_available:.4f} USD")
+        LOGGER.info(f"Available {config.pair.value.split('-')[0]}: {token_amt:.4f}")
+        LOGGER.info(f"Available USDC: {usdc_available:.4f} USD")
 
         buy_prices = self.generate_order_distribution(
             float(config.buy_range.start),
@@ -75,8 +76,8 @@ class SetupService(SingletonBase):
         )
         sell_qty = token_amt / config.sell_range.num_steps
         sell_qty = self.adjust_precision(sell_qty)
-        print(f"Token amount: {token_amt:.4f}")
-        print(f"Sell quantity: {sell_qty:.4f}")
+        LOGGER.info(f"Token amount: {token_amt:.4f}")
+        LOGGER.info(f"Sell quantity: {sell_qty:.4f}")
         if Decimal(sell_qty) > Decimal(0.05):
             for price in sell_prices:
                 time.sleep(0.15)
@@ -105,34 +106,38 @@ class SetupService(SingletonBase):
                     for order in orders.orders
                     if order.order_id in orderIds
                 ):
-                    print("All orders have been cancelled!")
+                    LOGGER.info("All orders have been cancelled!")
                     break
                 retries += 1
             else:
-                print(f"All orders could not be cancelled after {max_retries} retries.")
+                LOGGER.info(
+                    f"All orders could not be cancelled after {max_retries} retries."
+                )
             time.sleep(15)
 
     def cancel_orders(self, pair: CurrencyPair) -> None:
-        print(f"Cancelling orders for {pair.value}...")
+        LOGGER.info(f"Cancelling orders for {pair.value}...")
         data = self.api_client.list_orders()
         orders = from_dict(AllOrdersList, data)
-        orderIds = [
+        order_ids = [
             order.order_id
             for order in orders.orders
             if order.product_id == pair.value and order.status == "OPEN"
         ]
-        self.cancel_and_verify_orders(orderIds)
+        for i in range(0, len(order_ids), 100):
+            self.cancel_and_verify_orders(order_ids[i : i + 100])
 
     def cancel_all_orders(self) -> None:
-        print("Cancelling all orders...")
+        LOGGER.info("Cancelling all orders...")
         data = self.api_client.list_orders()
         orders = from_dict(AllOrdersList, data)
-        orderIds = [
+        order_ids = [
             order.order_id
             for order in orders.orders
             if order.status == "OPEN" or order.status == "PENDING"
         ]
-        self.cancel_and_verify_orders(orderIds)
+        for i in range(0, len(order_ids), 100):
+            self.cancel_and_verify_orders(order_ids[i : i + 100])
 
     def generate_order_distribution(
         self, min_val: float, max_val: float, amount: int, skew=None
@@ -147,7 +152,7 @@ class SetupService(SingletonBase):
             elif skew.direction == SkewDirection.MID:
                 x = np.sin(x * np.pi - np.pi / 2 + np.pi * factor / 2) / 2 + 0.5
         distribution = min_val + (max_val - min_val) * x
-        print(f"Generated distribution: {distribution}")
+        LOGGER.info(f"Generated distribution: {distribution}")
         return distribution
 
     def validate_configs(self) -> LiteralString | None:
@@ -186,10 +191,10 @@ class SetupService(SingletonBase):
                 f"Total percent_of_funds should add up to 1. Currently at {total_percent}."
             )
         if errors:
-            print("Errors found in configurations:")
+            LOGGER.info("Errors found in configurations:")
             raise error("\n".join(errors))
         else:
-            print("All configurations are logically sound.")
+            LOGGER.info("All configurations are logically sound.")
 
     def adjust_precision(self, size: Decimal, decimals=4) -> Decimal:
         return size.quantize(Decimal("1." + "0" * decimals), rounding=ROUND_DOWN)

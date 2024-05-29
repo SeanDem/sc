@@ -27,13 +27,13 @@ class UserOrdersService(SingletonBase, WSClient):
             self.subscribe([], ["user", "heartbeats"])
             self.run_forever_with_exception_check()
         except Exception as e:
-            print(f"ORDER_SERVICE error: {e}")
+            LOGGER.info(f"ORDER_SERVICE error: {e}")
         finally:
             self.close()
 
     def on_open(self) -> None:
-        print("WebSocket is now open!")
+        LOGGER.info("WebSocket is now open!")
         self.reconnect_attempts = 0
 
     def on_close(self) -> None:
-        print("WebSocket closed")
+        LOGGER.info("WebSocket closed")
