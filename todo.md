@@ -2,8 +2,8 @@
 
 ## IN PROGRESS
 
-- [ ] Better order cancellation logic and standalone service
-- [ ] Auto orderBook updating with functions. orderbook is also broken
+- [ ] Auto orderBook updating with functions. orderbook is very broken
+      also i do not like how it works right now. seems too complex
 
 ### TODO
 
@@ -14,6 +14,7 @@
 
 ### DONE
 
+- [x] Better order cancellation logic and standalone service
 - [x] Add logging
 - [x] Each split ws thread may need heartbeat
 - [x] Pending tx bug

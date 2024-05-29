@@ -1,6 +1,7 @@
 from bot.sc_services.token_service import TokenService
 from bot.sc_services.order_book import OrderBook
 from bot.sc_services.rest_client import EnhancedRestClient
+from bot.sc_services.cancel_service import CancelService
 from bot.sc_services.account_service import AccountService
 from bot.sc_services.order_service import OrderService
 from bot.sc_services.user_order_service import UserOrdersService
@@ -14,4 +15,5 @@ __all__ = [
     "SetupService",
     "EnhancedRestClient",
     "TokenService",
+    "CancelService",
 ]

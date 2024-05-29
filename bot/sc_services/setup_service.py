@@ -4,7 +4,6 @@ from os import error
 import time
 from typing import LiteralString
 from coinbase.rest import RESTClient
-from dacite import from_dict
 
 from ..other.logger import LOGGER
 from bot.other.singleton_base import SingletonBase
@@ -21,11 +20,12 @@ class SetupService(SingletonBase):
         self.orderService: OrderService = OrderService.get_instance()
         self.orderBook: OrderBook = OrderBook.get_instance()
         self.api_client: RESTClient = EnhancedRestClient.get_instance()
+        self.cancelService: CancelService = CancelService.get_instance()
         self.config = sc_config
 
     def start(self) -> None:
         self.validate_configs()
-        self.cancel_all_orders()
+        self.cancelService.cancel_all_orders()
         for pair, config in self.config.items():
             self.setup_initial_orders(config)
 
@@ -34,7 +34,7 @@ class SetupService(SingletonBase):
             self.re_balance_pair(pair)
 
     def re_balance_pair(self, pair: CurrencyPair) -> None:
-        self.cancel_orders(pair)
+        self.cancelService.cancel_all_orders(pair)
         self.setup_initial_orders(self.config[pair])
 
     def setup_initial_orders(self, config: CurrencyPairConfig) -> None:
@@ -57,7 +57,7 @@ class SetupService(SingletonBase):
         buy_qty = self.adjust_precision(buy_qty)
         if Decimal(buy_qty) > Decimal(0.05):
             for price in buy_prices:
-                time.sleep(0.15)
+                time.sleep(0.1)
                 order_id = self.orderService.buy_order(config.pair, str(buy_qty), price)
                 if order_id:
                     self.orderBook.update_order(
@@ -80,7 +80,7 @@ class SetupService(SingletonBase):
         LOGGER.info(f"Sell quantity: {sell_qty:.4f}")
         if Decimal(sell_qty) > Decimal(0.05):
             for price in sell_prices:
-                time.sleep(0.15)
+                time.sleep(0.1)
                 order_id = self.orderService.sell_order(
                     config.pair, str(sell_qty), price
                 )
@@ -92,52 +92,6 @@ class SetupService(SingletonBase):
                         order_id,
                         str(sell_qty),
                     )
-
-    def cancel_and_verify_orders(self, orderIds, max_retries=20) -> None:
-        if orderIds:
-            self.api_client.cancel_orders(orderIds)
-            retries = 0
-            while retries < max_retries:
-                time.sleep(0.1)
-                data = self.api_client.list_orders()
-                orders = from_dict(AllOrdersList, data)
-                if all(
-                    order.status == OrderStatus.CANCELLED.value
-                    for order in orders.orders
-                    if order.order_id in orderIds
-                ):
-                    LOGGER.info("All orders have been cancelled!")
-                    break
-                retries += 1
-            else:
-                LOGGER.info(
-                    f"All orders could not be cancelled after {max_retries} retries."
-                )
-            time.sleep(15)
-
-    def cancel_orders(self, pair: CurrencyPair) -> None:
-        LOGGER.info(f"Cancelling orders for {pair.value}...")
-        data = self.api_client.list_orders()
-        orders = from_dict(AllOrdersList, data)
-        order_ids = [
-            order.order_id
-            for order in orders.orders
-            if order.product_id == pair.value and order.status == "OPEN"
-        ]
-        for i in range(0, len(order_ids), 100):
-            self.cancel_and_verify_orders(order_ids[i : i + 100])
-
-    def cancel_all_orders(self) -> None:
-        LOGGER.info("Cancelling all orders...")
-        data = self.api_client.list_orders()
-        orders = from_dict(AllOrdersList, data)
-        order_ids = [
-            order.order_id
-            for order in orders.orders
-            if order.status == "OPEN" or order.status == "PENDING"
-        ]
-        for i in range(0, len(order_ids), 100):
-            self.cancel_and_verify_orders(order_ids[i : i + 100])
 
     def generate_order_distribution(
         self, min_val: float, max_val: float, amount: int, skew=None

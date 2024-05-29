@@ -35,14 +35,14 @@ class TradingBot:
         self.schedule_rebalance()
 
     def schedule_rebalance(self) -> None:
-        LOGGER.info("Scheduling re-balance every 30 minutes...")
+        LOGGER.info("Scheduling re-balancer")
 
         def rebalance():
             self.setupService.re_balance_All()
             LOGGER.info("30 minutes have passed, re-balancing all pairs...")
-            Timer(60 * 30, rebalance).start()
+            Timer(2000, rebalance).start()
 
-        Timer(60 * 30, rebalance).start()
+        Timer(2000, rebalance).start()
 
     def handle_order(self, order: OrderEvent) -> None:
         self.seen_order_ids.add(order.order_id)
