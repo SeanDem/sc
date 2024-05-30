@@ -36,10 +36,11 @@ class TradingBot:
         self.schedule_available_funds_check()
 
     def schedule_available_funds_check(self) -> None:
+        time = 60
         LOGGER.info("Scheduling available funds check")
 
         def check_for_available_funds() -> None:
-            LOGGER.info("Checking for available funds...")
+            LOGGER.info(f"{time} seconds have passed, checking for available funds...")
             usdc = self.accountService.get_usdc_available_to_trade()
             dai = self.accountService.get_token_available_to_trade(
                 CurrencyPair.DAI_USDC
@@ -50,19 +51,20 @@ class TradingBot:
                 self.setupService.setup_initial_orders(
                     self.config[CurrencyPair.DAI_USDC]
                 )
-            Timer(5000, check_for_available_funds).start()
+            Timer(time, check_for_available_funds).start()
 
-        Timer(5000, check_for_available_funds).start()
+        Timer(time, check_for_available_funds).start()
 
     def schedule_rebalance(self) -> None:
+        time = 3600
         LOGGER.info("Scheduling re-balancer")
 
         def rebalance():
             self.setupService.re_balance_All()
-            LOGGER.info("30 minutes have passed, re-balancing all pairs...")
-            Timer(5000, rebalance).start()
+            LOGGER.info(f"{time} seconds have passed, re-balancing all pairs...")
+            Timer(time, rebalance).start()
 
-        Timer(5000, rebalance).start()
+        Timer(time, rebalance).start()
 
     def handle_order(self, order: OrderEvent) -> None:
         self.seen_order_ids.add(order.order_id)

@@ -57,8 +57,8 @@ class CancelService(SingletonBase):
         while any(order_id in self.orders_to_cancel for order_id in order_ids):
             time.sleep(0.05)
             LOGGER.info(f"{len(self.orders_to_cancel)} orders left to cancel...")
-        LOGGER.info("All orders have been cancelled, waiting additional 5 seconds...")
-        time.sleep(5)
+        LOGGER.info("All orders have been cancelled, waiting additional 15 seconds...")
+        time.sleep(15)
 
     def cancel_all_orders(self, pair: CurrencyPair | None = None) -> None:
         LOGGER.info("Cancelling all orders...")

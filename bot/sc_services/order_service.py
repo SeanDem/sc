@@ -59,6 +59,8 @@ class OrderService(SingletonBase):
             return orderId
         else:
             LOGGER.info(f"Failed to create buy order for {pair.value}")
+            amt: Decimal = self.accountService.get_usdc_available_to_trade()
+            LOGGER.info(f"Available to trade: {amt}")
             LOGGER.info(response)
 
     def sell_order(
@@ -96,4 +98,6 @@ class OrderService(SingletonBase):
             return orderId
         else:
             LOGGER.info(f"Failed to create sell order for {pair.value}")
+            amt = self.accountService.get_token_available_to_trade(pair)
+            LOGGER.info(f"Available to trade: {amt}")
             LOGGER.info(response)

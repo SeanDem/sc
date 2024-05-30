@@ -2,20 +2,21 @@
 
 ## IN PROGRESS
 
-- [ ] Auto orderBook updating with functions. orderbook is very broken
-      also i do not like how it works right now. seems too complex
+- [ ] rebalance service
 
 ### TODO
 
+- [ ] periodic check of funds not in order
 - [ ] Check on threading
-- [ ] rebalance service
-- [ ] think about logic for replacing orders / replacing. Cancel? Time? never?
+- [ ] logic for replacing orders / replacing. Cancel? Time? never?
 - [ ] Add more error handling
 - [ ] Smaller orders. max order size fn?
 - [ ] Add more tests
 
 ### DONE
 
+- [x] Auto orderBook updating with functions. orderbook is very broken
+      also i do not like how it works right now. seems too complex
 - [x] Better order cancellation logic and standalone service
 - [x] Add logging
 - [x] Each split ws thread may need heartbeat
