@@ -3,18 +3,20 @@
 ## IN PROGRESS
 
 - [ ] rebalance service
+- [ ] Smaller orders max order size config?
 
 ### TODO
 
-- [ ] periodic check of funds not in order
 - [ ] Check on threading
-- [ ] logic for replacing orders / replacing. Cancel? Time? never?
 - [ ] Add more error handling
-- [ ] Smaller orders. max order size fn?
+- [ ] Add more logging
 - [ ] Add more tests
 
 ### DONE
 
+- [x] Docker
+- [x] logic for replacing orders / replacing. -> random cancellation every 1-3 mins to keep book even
+- [x] periodic check of funds not in order
 - [x] Auto orderBook updating with functions. orderbook is very broken
       also i do not like how it works right now. seems too complex
 - [x] Better order cancellation logic and standalone service
@@ -23,5 +25,5 @@
 - [x] Pending tx bug
 - [x] Check current price before placing orders
 - [x] Cancel largest order to replace filled orders
-  - [x] Bottom n or n largest cancel to refill n + 1
+- [x] Bottom n or n largest cancel to refill n + 1
 - [x] Better service split, particularly ws_client

@@ -5,7 +5,7 @@ import time
 from typing import LiteralString
 from coinbase.rest import RESTClient
 
-from ..other.logger import LOGGER
+from bot.other.logger import LOGGER
 from bot.other.singleton_base import SingletonBase
 from bot.sc_types import *
 from bot.sc_services import *
@@ -52,6 +52,9 @@ class SetupService(SingletonBase):
             config.buy_range.num_steps,
             config.buy_range.skew,
         )
+        self.orderBook.add_prices(
+            config.pair, OrderSide.BUY, [str(price) for price in buy_prices.tolist()]
+        )
 
         buy_qty: Decimal = usdc_available / config.buy_range.num_steps
         buy_qty = self.adjust_precision(buy_qty)
@@ -73,6 +76,9 @@ class SetupService(SingletonBase):
             float(config.sell_range.end),
             config.sell_range.num_steps,
             config.sell_range.skew,
+        )
+        self.orderBook.add_prices(
+            config.pair, OrderSide.SELL, [str(price) for price in sell_prices.tolist()]
         )
         sell_qty = token_amt / config.sell_range.num_steps
         sell_qty = self.adjust_precision(sell_qty)

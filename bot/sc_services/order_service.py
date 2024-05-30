@@ -74,6 +74,13 @@ class OrderService(SingletonBase):
             return
 
         best_bid = Decimal(self.tokenService.ticker_data[pair.value].best_bid)
+        best_ask = Decimal(self.tokenService.ticker_data[pair.value].best_ask)
+
+        # Temporary fix for best ask below .9999, need more robust solution in future
+        if best_ask < Decimal(".9999") and price == self.config[pair].sell_range.end:
+            LOGGER.info(f"Best ask below .9999, converting highest sell price to .9998")
+            price = ".9998"
+
         if Decimal(price) <= best_bid:
             LOGGER.info(f"Sell price at or below best bid {best_bid} at {price}")
             price = str(best_bid + Decimal("0.0001"))

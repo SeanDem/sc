@@ -4,6 +4,7 @@ from bot.other.singleton_base import SingletonBase
 from bot.sc_types import *
 from bot.sc_services import *
 from dacite import from_dict
+from bot.config import sc_config
 
 
 class AccountService(SingletonBase):
@@ -11,6 +12,7 @@ class AccountService(SingletonBase):
         self.api_client = EnhancedRestClient.get_instance()
         self.uuid = "5218e553-84ec-54ec-a572-df8243f3d5ba"
         self.portfolio_breakdown = self.getPortfolioBreakdown()
+        self.config = sc_config
 
     def getPortfolioBreakdown(self) -> PortfolioBreakdown:
         return from_dict(
