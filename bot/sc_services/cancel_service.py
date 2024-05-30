@@ -54,9 +54,17 @@ class CancelService(SingletonBase):
         self.wait_for_cancellation(order_ids)
 
     def wait_for_cancellation(self, order_ids) -> None:
-        while any(order_id in self.orders_to_cancel for order_id in order_ids):
+        max_retries = 15
+        retries = 0
+        while (
+            any(order_id in self.orders_to_cancel for order_id in order_ids)
+            and retries < max_retries
+        ):
+            retries += 1
             time.sleep(0.05)
             LOGGER.info(f"{len(self.orders_to_cancel)} orders left to cancel...")
+        if retries == max_retries:
+            LOGGER.error(f"Failed to cancel all orders in {max_retries} retries.")
         LOGGER.info("All orders have been cancelled, waiting additional 15 seconds...")
         time.sleep(15)
 

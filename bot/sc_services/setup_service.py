@@ -57,7 +57,7 @@ class SetupService(SingletonBase):
         buy_qty = self.adjust_precision(buy_qty)
         if Decimal(buy_qty) > Decimal(0.05):
             for price in buy_prices:
-                time.sleep(0.1)
+                time.sleep(0.2)
                 order_id = self.orderService.buy_order(config.pair, str(buy_qty), price)
                 if order_id:
                     self.orderBook.update_order(
@@ -80,7 +80,7 @@ class SetupService(SingletonBase):
         LOGGER.info(f"Sell quantity: {sell_qty:.4f}")
         if Decimal(sell_qty) > Decimal(0.05):
             for price in sell_prices:
-                time.sleep(0.1)
+                time.sleep(0.2)
                 order_id = self.orderService.sell_order(
                     config.pair, str(sell_qty), price
                 )
