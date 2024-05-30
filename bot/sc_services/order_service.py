@@ -14,6 +14,7 @@ class OrderService(SingletonBase):
         self.api_client = EnhancedRestClient.get_instance()
         self.accountService = AccountService.get_instance()
         self.tokenService = TokenService.get_instance()
+        self.orderBook = OrderBook.get_instance()
 
     def generate_order_id(self) -> str:
         return str(uuid.uuid4())
@@ -48,14 +49,17 @@ class OrderService(SingletonBase):
             base_size=adjusted_qty,
             limit_price=adjusted_price,
         )
-        if not response["success"]:
-            LOGGER.info(f"Failed to create buy order for {pair.value}")
-            LOGGER.info(response)
-        else:
+        if response["success"]:
             LOGGER.info(
                 f"Buy Limit Order {pair.value}: {adjusted_qty} at {adjusted_price}"
             )
+            self.orderBook.update_order(
+                pair, OrderSide.BUY, adjusted_price, orderId, adjusted_qty
+            )
             return orderId
+        else:
+            LOGGER.info(f"Failed to create buy order for {pair.value}")
+            LOGGER.info(response)
 
     def sell_order(
         self,
@@ -82,11 +86,14 @@ class OrderService(SingletonBase):
             base_size=adjusted_qty,
             limit_price=adjusted_price,
         )
-        if not response["success"]:
-            LOGGER.info(f"Failed to create sell order for {pair.value}")
-            LOGGER.info(response)
-        else:
+        if response["success"]:
             LOGGER.info(
-                f"Sell limit order {pair.value}: {adjusted_qty} at {adjusted_price}"
+                f"Sell Limit Order {pair.value}: {adjusted_qty} at {adjusted_price}"
+            )
+            self.orderBook.update_order(
+                pair, OrderSide.SELL, adjusted_price, orderId, adjusted_qty
             )
             return orderId
+        else:
+            LOGGER.info(f"Failed to create sell order for {pair.value}")
+            LOGGER.info(response)

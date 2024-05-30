@@ -6,9 +6,9 @@ from bot.sc_services import *
 from bot.other import *
 
 
-class UserOrdersService(SingletonBase, WSClient):
+class UserOrdersService(SingletonBase):
     def __init__(self, on_message) -> None:
-        super().__init__(
+        self.ws_client = WSClient(
             on_message=on_message,
             api_key=api_key,
             api_secret=api_secret,
@@ -23,13 +23,13 @@ class UserOrdersService(SingletonBase, WSClient):
 
     def run_websocket(self):
         try:
-            self.open()
-            self.subscribe([], ["user", "heartbeats"])
-            self.run_forever_with_exception_check()
+            self.ws_client.open()
+            self.ws_client.subscribe([], ["user", "heartbeats"])
+            self.ws_client.run_forever_with_exception_check()
         except Exception as e:
             LOGGER.info(f"ORDER_SERVICE error: {e}")
         finally:
-            self.close()
+            self.ws_client.close()
 
     def on_open(self) -> None:
         LOGGER.info("WebSocket is now open!")

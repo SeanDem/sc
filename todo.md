@@ -7,9 +7,11 @@
 
 ### TODO
 
-- [ ] Double orders on setup
 - [ ] Check on threading
+- [ ] rebalance service
+- [ ] think about logic for replacing orders / replacing. Cancel? Time? never?
 - [ ] Add more error handling
+- [ ] Smaller orders. max order size fn?
 - [ ] Add more tests
 
 ### DONE

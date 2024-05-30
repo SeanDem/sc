@@ -33,6 +33,26 @@ class TradingBot:
     def setup(self) -> None:
         self.setupService.start()
         self.schedule_rebalance()
+        self.schedule_available_funds_check()
+
+    def schedule_available_funds_check(self) -> None:
+        LOGGER.info("Scheduling available funds check")
+
+        def check_for_available_funds() -> None:
+            LOGGER.info("Checking for available funds...")
+            usdc = self.accountService.get_usdc_available_to_trade()
+            dai = self.accountService.get_token_available_to_trade(
+                CurrencyPair.DAI_USDC
+            )
+
+            if usdc > Decimal("1") or dai > Decimal("1"):
+                LOGGER.info("Adding orders for DAI-USDC...")
+                self.setupService.setup_initial_orders(
+                    self.config[CurrencyPair.DAI_USDC]
+                )
+            Timer(5000, check_for_available_funds).start()
+
+        Timer(5000, check_for_available_funds).start()
 
     def schedule_rebalance(self) -> None:
         LOGGER.info("Scheduling re-balancer")
@@ -40,13 +60,14 @@ class TradingBot:
         def rebalance():
             self.setupService.re_balance_All()
             LOGGER.info("30 minutes have passed, re-balancing all pairs...")
-            Timer(2000, rebalance).start()
+            Timer(5000, rebalance).start()
 
-        Timer(2000, rebalance).start()
+        Timer(5000, rebalance).start()
 
     def handle_order(self, order: OrderEvent) -> None:
         self.seen_order_ids.add(order.order_id)
         if order.status == OrderStatus.FILLED.value:
+            self.orderBook.delete_order_by_id(order.order_id)
             if order.order_side == OrderSide.BUY.value:
                 self.handle_buy_order(order)
             elif order.order_side == OrderSide.SELL.value:
@@ -56,13 +77,6 @@ class TradingBot:
         LOGGER.info(
             f"Buy order event filled for {order.product_id}: {order.cumulative_quantity} at {order.avg_price} USDC"
         )
-        self.orderBook.clear_order(
-            CurrencyPair(order.product_id),
-            OrderSide.BUY,
-            order.avg_price,
-            order.order_id,
-        )
-
         min_amount_sell_prices = self.orderBook.get_prices_with_lowest_amount(
             CurrencyPair(order.product_id), OrderSide.SELL
         )
@@ -98,13 +112,6 @@ class TradingBot:
         LOGGER.info(
             f"Sell order event filled for {order.product_id}: {order.cumulative_quantity} at {order.avg_price} USDC"
         )
-        self.orderBook.clear_order(
-            CurrencyPair(order.product_id),
-            OrderSide.SELL,
-            order.avg_price,
-            order.order_id,
-        )
-
         max_amount_buy_prices = self.orderBook.get_prices_with_lowest_amount(
             CurrencyPair(order.product_id), OrderSide.BUY
         )

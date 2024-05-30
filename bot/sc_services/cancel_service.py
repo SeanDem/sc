@@ -13,6 +13,7 @@ from bot.keys import api_key, api_secret
 class CancelService(SingletonBase):
     def __init__(self):
         self.api_client = EnhancedRestClient.get_instance()
+        self.orderBook = OrderBook.get_instance()
         self.orders_to_cancel: Set[str] = set()
         self.cancel_lock = threading.Lock()
         self.init_websocket()
@@ -39,6 +40,7 @@ class CancelService(SingletonBase):
                     with self.cancel_lock:
                         if order.order_id in self.orders_to_cancel:
                             self.orders_to_cancel.remove(order.order_id)
+                            self.orderBook.delete_order_by_id(order.order_id)
                             print(
                                 f"Order {order.order_id} has been cancelled and removed from the set"
                             )
@@ -55,6 +57,8 @@ class CancelService(SingletonBase):
         while any(order_id in self.orders_to_cancel for order_id in order_ids):
             time.sleep(0.05)
             LOGGER.info(f"{len(self.orders_to_cancel)} orders left to cancel...")
+        LOGGER.info("All orders have been cancelled, waiting additional 5 seconds...")
+        time.sleep(5)
 
     def cancel_all_orders(self, pair: CurrencyPair | None = None) -> None:
         LOGGER.info("Cancelling all orders...")
@@ -63,6 +67,7 @@ class CancelService(SingletonBase):
             data = self.api_client.list_orders(pair.value, ["OPEN"])
         else:
             data = self.api_client.list_orders(order_status=["OPEN"])
+
         orders = from_dict(AllOrdersList, data)
         order_ids = [order.order_id for order in orders.orders]
         self.cancel_orders(order_ids)

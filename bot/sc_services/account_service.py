@@ -10,6 +10,7 @@ class AccountService(SingletonBase):
     def __init__(self) -> None:
         self.api_client = EnhancedRestClient.get_instance()
         self.uuid = "5218e553-84ec-54ec-a572-df8243f3d5ba"
+        self.portfolio_breakdown = self.getPortfolioBreakdown()
 
     def getPortfolioBreakdown(self) -> PortfolioBreakdown:
         return from_dict(
