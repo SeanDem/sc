@@ -16,21 +16,25 @@ class OrderBook(SingletonBase):
         )
         self.order_lookup: Dict[str, Tuple[str, str, str]] = {}
 
-    def get_random_order_id(self) -> str:
+    def get_random_order_id(self, side: OrderSide) -> str:
         if not self.order_lookup:
             LOGGER.warning("No orders in order book")
             return ""
-        return random.choice(list(self.order_lookup.keys()))
+        order = random.choice(list(self.order_lookup.keys()))
+        if self.order_lookup[order][1] == side.value:
+            return order
+        else:
+            return self.get_random_order_id(side)
 
-    def get_and_delete_random_order(self) -> str:
-        random_order_id = self.get_random_order_id()
+    def get_and_delete_random_order(self, side: OrderSide) -> str:
+        random_order_id = self.get_random_order_id(side)
         self.delete_order_by_id(random_order_id)
         return random_order_id
 
-    def get_and_delete_random_orders(self, amount=2) -> List[str]:
+    def get_and_delete_random_orders(self, side: OrderSide, amount=2) -> List[str]:
         orders = []
         for _ in range(amount):
-            random_order_id = self.get_and_delete_random_order()
+            random_order_id = self.get_and_delete_random_order(side)
             if random_order_id:
                 orders.append(random_order_id)
         return orders
@@ -75,11 +79,12 @@ class OrderBook(SingletonBase):
         zero_amount_prices = []
         for price, orders in self.orders[pair.value][side.value].items():
             if not orders:
-                zero_amount_prices.append(price)
-        zero_amount_prices = sorted(zero_amount_prices)
+                numeric_price = Decimal(price)
+                zero_amount_prices.append(numeric_price)
+        zero_amount_prices.sort()
         if OrderSide.BUY == side:
             zero_amount_prices.reverse()
-        return zero_amount_prices[:maxSize]
+        return [str(price) for price in zero_amount_prices[:maxSize]]
 
     def get_prices_with_lowest_amount(
         self, pair: CurrencyPair, side: OrderSide, maxSize=10
@@ -88,26 +93,20 @@ class OrderBook(SingletonBase):
         prices_with_min_amount = []
 
         for price, orders in self.orders[pair.value][side.value].items():
-            if orders:
-                for order_id, amount in orders.items():
-                    amount_decimal = Decimal(amount)
-                    if amount_decimal < min_amount:
-                        min_amount = amount_decimal
-                        prices_with_min_amount = [price]
-                    elif amount_decimal == min_amount:
-                        prices_with_min_amount.append(price)
-            else:
-                if Decimal("0") < min_amount:
-                    min_amount = Decimal("0")
-                    prices_with_min_amount = [price]
-                elif Decimal("0") == min_amount:
-                    prices_with_min_amount.append(price)
+            for order_id, amount in orders.items():
+                amount_decimal = Decimal(amount)
+                price_decimal = Decimal(price)
+                if amount_decimal < min_amount:
+                    min_amount = amount_decimal
+                    prices_with_min_amount = [price_decimal]
+                elif amount_decimal == min_amount:
+                    prices_with_min_amount.append(price_decimal)
 
-        prices_with_min_amount = sorted(prices_with_min_amount)
-        if OrderSide.BUY == side:
+        prices_with_min_amount.sort()
+        if side == OrderSide.BUY:
             prices_with_min_amount.reverse()
 
-        return prices_with_min_amount[:maxSize]
+        return [str(price) for price in prices_with_min_amount[:maxSize]]
 
     def get_top_orders(
         self,

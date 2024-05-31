@@ -102,7 +102,7 @@ class SetupService(SingletonBase):
     def generate_order_distribution(
         self, min_val: float, max_val: float, amount: int, skew=None
     ):
-        x = np.linspace(0, 1, amount)
+        x = np.linspace(0, 1, amount, dtype=np.float64)
         if skew is not None:
             factor = skew.factor
             if skew.direction == SkewDirection.END:
@@ -112,6 +112,7 @@ class SetupService(SingletonBase):
             elif skew.direction == SkewDirection.MID:
                 x = np.sin(x * np.pi - np.pi / 2 + np.pi * factor / 2) / 2 + 0.5
         distribution = min_val + (max_val - min_val) * x
+        distribution = np.round(distribution, decimals=10)
         LOGGER.info(f"Generated distribution: {distribution}")
         return distribution
 

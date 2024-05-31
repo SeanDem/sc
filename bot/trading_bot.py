@@ -25,7 +25,7 @@ class TradingBot:
         self.orderService = OrderService.get_instance()
         self.orderBook = OrderBook.get_instance()
         self.cancelService = CancelService.get_instance()
-        self.orders_to_refresh = 3
+        self.orders_to_refresh = 2
         self.refresh_interval = 60
 
     def start(self) -> None:
@@ -35,12 +35,13 @@ class TradingBot:
 
     def setup(self) -> None:
         self.setupService.start()
-        self.schedule_random_order_cancel()
-        self.schedule_available_funds_check()
-        self.schedule_rebalance()
-        self.schedule_info()
+        self.start_order_cancel_scheduler()
+        self.start_available_funds_scheduler()
+        self.start_rebalance_scheduler()
+        self.start_info_scheduler()
 
-    def schedule_info(self) -> None:
+    def start_info_scheduler(self) -> None:
+        LOGGER.info("Starting info scheduler")
 
         def print_info():
             LOGGER.info("Checking info")
@@ -49,21 +50,16 @@ class TradingBot:
             buy_orders = [order for order in total_orders if order.side == "BUY"]
             sell_orders = [order for order in total_orders if order.side == "SELL"]
 
-            usdc = self.accountService.get_usdc_available_to_trade()
-            dai = self.accountService.get_token_available_to_trade(
-                CurrencyPair.DAI_USDC
-            )
             LOGGER.info(
                 f"Total Orders: {len(total_orders)}\nBuy Orders: {len(buy_orders)}\nSell Orders: {len(sell_orders)}"
             )
-            LOGGER.info(f"USDC: {usdc:.4f}\nDAI: {dai:.4f}")
 
-            Timer(60, print_info).start()
+            Timer(self.refresh_interval, print_info).start()
 
-        Timer(60, print_info).start()
+        Timer(self.refresh_interval, print_info).start()
 
-    def schedule_random_order_cancel(self) -> None:
-        LOGGER.info("Scheduling random order cancellation...")
+    def start_order_cancel_scheduler(self) -> None:
+        LOGGER.info("Starting order cancel scheduler")
         time = self.orders_to_refresh * self.refresh_interval
 
         def cancel_random_order() -> None:
@@ -71,7 +67,8 @@ class TradingBot:
                 f"{time} seconds have passed, cancelling {self.orders_to_refresh} random order(s)..."
             )
             order_ids = self.orderBook.get_and_delete_random_orders(
-                self.orders_to_refresh
+                OrderSide.BUY,
+                self.orders_to_refresh - 1,
             )
             self.cancelService.cancel_orders(order_ids)
 
@@ -79,16 +76,18 @@ class TradingBot:
 
         Timer(time, cancel_random_order).start()
 
-    def schedule_available_funds_check(self) -> None:
-        LOGGER.info("Scheduling available funds check...")
-        time = self.refresh_interval
+    def start_available_funds_scheduler(self) -> None:
+        LOGGER.info("Starting available funds scheduler")
 
         def check_for_available_funds() -> None:
-            LOGGER.info(f"{time} seconds have passed, checking for available funds...")
+            LOGGER.info(
+                f"{self.refresh_interval} seconds have passed, checking for available funds"
+            )
             usdc = self.accountService.get_usdc_available_to_trade()
             dai = self.accountService.get_token_available_to_trade(
                 CurrencyPair.DAI_USDC
             )
+            LOGGER.info(f"USDC: {usdc:.4f}\nDAI: {dai:.4f}")
 
             if usdc > Decimal(self.orders_to_refresh):
                 self.fill_buy_ladder(CurrencyPair.DAI_USDC, usdc)
@@ -96,17 +95,17 @@ class TradingBot:
             if dai > Decimal(self.orders_to_refresh):
                 self.fill_sell_ladder(CurrencyPair.DAI_USDC, dai)
 
-            Timer(time, check_for_available_funds).start()
+            Timer(self.refresh_interval, check_for_available_funds).start()
 
-        Timer(time, check_for_available_funds).start()
+        Timer(self.refresh_interval, check_for_available_funds).start()
 
-    def schedule_rebalance(self) -> None:
-        LOGGER.info("Scheduling rebalance...")
+    def start_rebalance_scheduler(self) -> None:
+        LOGGER.info("Starting re-balance scheduler")
         time = 3600 * 6
 
         def rebalance():
             self.setupService.re_balance_All()
-            LOGGER.info(f"{time/60} minutes have passed, re-balancing all pairs...")
+            LOGGER.info(f"{time/60} minutes have passed, re-balancing all pairs")
             Timer(time, rebalance).start()
 
         Timer(time, rebalance).start()
@@ -138,14 +137,10 @@ class TradingBot:
             self.handle_order(order_event)
 
     def fill_ladder(self, pair: CurrencyPair, amount: Decimal, side: OrderSide) -> None:
-        LOGGER.info(f"Filling {side.value} ladder for {pair.value} with {amount}")
-        prices = self.orderBook.get_prices_at_zero_amount(
+        LOGGER.info(f"Filling {side.value} ladder for {pair.value} with {amount:.4f}")
+        prices = self.orderBook.get_prices_with_lowest_amount(
             pair, side, self.orders_to_refresh
         )
-        if not prices:
-            prices = self.orderBook.get_prices_with_lowest_amount(
-                pair, side, self.orders_to_refresh
-            )
 
         if prices:
             order_amount = abs(Decimal(amount)) / len(prices)

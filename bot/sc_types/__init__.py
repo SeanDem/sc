@@ -15,6 +15,7 @@ from bot.sc_types.setup_types import Skew
 from bot.sc_types.setup_types import SkewDirection
 from bot.sc_types.event_types import TickerEvent
 from bot.sc_types.event_types import WS_Event
+from bot.sc_types.order_types import Order
 __all__ = [
     "Portfolios",
     "Portfolio",
@@ -33,4 +34,5 @@ __all__ = [
     "SkewDirection",
     "TickerEvent",
     "WS_Event",
+    "Order"
 ]

@@ -33,6 +33,8 @@ class CancelService(SingletonBase):
 
     def on_message(self, msg: str) -> None:
         data = json.loads(msg)
+        if data["channel"] == "heartbeats":
+            return
         message = from_dict(WS_Message, data)
         for event in message.events:
             for order in event.orders or []:
@@ -46,7 +48,7 @@ class CancelService(SingletonBase):
                             )
 
     def cancel_orders(self, order_ids: list[str]) -> None:
-        LOGGER.info(f"Cancelling {len(order_ids)} orders...")
+        LOGGER.info(f"Cancelling {len(order_ids)} orders")
         with self.cancel_lock:
             self.orders_to_cancel.update(order_ids)
         for i in range(0, len(order_ids), 100):
@@ -63,18 +65,21 @@ class CancelService(SingletonBase):
         ):
             retries += 1
             time.sleep(1)
-            LOGGER.info(f"{len(self.orders_to_cancel)} orders left to cancel...")
+            LOGGER.info(f"{len(self.orders_to_cancel)} orders left to cancel")
         if retries == max_retries:
-            LOGGER.error(f"Failed to cancel all orders in {max_retries} retries.")
+            LOGGER.error(f"Failed to cancel all orders in {max_retries} retries")
+            LOGGER.info("Sleeping for additional 15 seconds")
+            time.sleep(15)
             with self.cancel_lock:
                 self.orders_to_cancel.clear()
         else:
-            LOGGER.info("All orders have been cancelled.")
+            LOGGER.info("Selected orders have been cancelled")
 
+        LOGGER.info("Sleeping for 15 seconds")
         time.sleep(15)
 
     def cancel_all_orders(self, pair: CurrencyPair | None = None) -> None:
-        LOGGER.info("Cancelling all orders...")
+        LOGGER.info("Cancelling all orders")
         data = []
         if pair:
             data = self.api_client.list_orders(pair.value, ["OPEN"])
