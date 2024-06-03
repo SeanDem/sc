@@ -118,7 +118,7 @@ class TradingBot:
 
         def rebalance():
             self.setupService.re_balance_All()
-            LOGGER.info(f"{time/60} minutes have passed, re-balancing all pairs")
+            LOGGER.info(f"{time/60/60} hours have passed, re-balancing all pairs")
             Timer(time, rebalance).start()
 
         Timer(time, rebalance).start()

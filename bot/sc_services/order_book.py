@@ -37,13 +37,14 @@ class OrderBook(SingletonBase):
         return random_order_id
 
     def get_and_delete_random_orders(self, side: OrderSide, amount=2) -> List[str]:
+        # TODO maybe add token as parameter
         orders = []
         for _ in range(amount):
             random_order_id = self.get_and_delete_random_order(side)
             if random_order_id:
                 orders.append(random_order_id)
             else:
-                LOGGER.warning("No more orders of the specified side in order book")
+                LOGGER.warning(f"No more {side.value} orders in order book")
                 break
         return orders
 
@@ -135,7 +136,6 @@ class OrderBook(SingletonBase):
             for order_id, amount, price in order_list[:num_ids]
         ]
 
-
     def log_order_book_info(self):
         for token, sides in self.orders.items():
             LOGGER.info(f"Orders for {token}")
@@ -150,7 +150,9 @@ class OrderBook(SingletonBase):
                 total_side_orders = 0
 
                 for price, orders in prices.items():
-                    total_price_amount = sum(float(amount) for amount in orders.values())
+                    total_price_amount = sum(
+                        float(amount) for amount in orders.values()
+                    )
                     number_of_orders = len(orders)
 
                     LOGGER.info(
