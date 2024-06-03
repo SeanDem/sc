@@ -4,6 +4,8 @@
 
 ### TODO
 
+- [ ] rename orderbook, orderservice and userOrderService. too close
+- [ ] re-orgainize files, number of services has grows past current design
 - [ ] rebalance service - logic to keep "total orders" more stable, while keeping order book balanced. also keep oldest orders
 - [ ] robust logic to deal with prolonged below $1 prices
 - [ ] add mechanism to not cancel older orders, especially those at at a lower price. those benefit most from time priority
