@@ -53,7 +53,7 @@ class SetupService(SingletonBase):
             config.buy_range.skew,
         )
         self.orderBook.add_prices(
-            config.pair, OrderSide.BUY, [str(price) for price in buy_prices.tolist()]
+            config.pair, OrderSide.BUY, self.npy_to_list(buy_prices)
         )
 
         buy_qty: Decimal = usdc_available / config.buy_range.num_steps
@@ -78,7 +78,7 @@ class SetupService(SingletonBase):
             config.sell_range.skew,
         )
         self.orderBook.add_prices(
-            config.pair, OrderSide.SELL, [str(price) for price in sell_prices.tolist()]
+            config.pair, OrderSide.SELL, self.npy_to_list(sell_prices)
         )
         sell_qty = token_amt / config.sell_range.num_steps
         sell_qty = self.adjust_precision(sell_qty)
@@ -112,7 +112,7 @@ class SetupService(SingletonBase):
             elif skew.direction == SkewDirection.MID:
                 x = np.sin(x * np.pi - np.pi / 2 + np.pi * factor / 2) / 2 + 0.5
             distribution = min_val + (max_val - min_val) * x
-        else: 
+        else:
             distribution = np.linspace(min_val, max_val, amount)
         LOGGER.info(f"Generated distribution: {distribution}")
         return distribution
@@ -160,3 +160,8 @@ class SetupService(SingletonBase):
 
     def adjust_precision(self, size: Decimal, decimals=4) -> Decimal:
         return size.quantize(Decimal("1." + "0" * decimals), rounding=ROUND_DOWN)
+
+    def npy_to_list(self, array: np.ndarray):
+        return [
+            str(self.adjust_precision(Decimal(str(price)))) for price in array.tolist()
+        ]

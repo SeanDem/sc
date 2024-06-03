@@ -2,18 +2,21 @@
 
 ## IN PROGRESS
 
-- [ ] rebalance service
-- [ ] Smaller orders max order size config?
-
 ### TODO
 
-- [ ] Check on threading
+- [ ] rebalance service - logic to keep "total orders" more stable, while keeping order book balanced. also keep oldest orders
+- [ ] robust logic to deal with prolonged below $1 prices
+- [ ] add mechanism to not cancel older orders, especially those at at a lower price. those benefit most from time priority
+- [ ] check on threading, we probably need more thread locking
 - [ ] Add more error handling
+- [ ] add back other token
 - [ ] Add more logging
 - [ ] Add more tests
 
 ### DONE
 
+- [x] Smaller orders max order size config?
+- [x] order prices consolidating bug. think orderbook is loosing price ladder over time
 - [x] Docker
 - [x] logic for replacing orders / replacing. -> random cancellation every 1-3 mins to keep book even
 - [x] periodic check of funds not in order

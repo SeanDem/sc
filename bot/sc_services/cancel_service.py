@@ -48,6 +48,8 @@ class CancelService(SingletonBase):
                             )
 
     def cancel_orders(self, order_ids: list[str]) -> None:
+        if not order_ids:
+            return
         LOGGER.info(f"Cancelling {len(order_ids)} orders")
         with self.cancel_lock:
             self.orders_to_cancel.update(order_ids)

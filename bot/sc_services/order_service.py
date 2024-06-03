@@ -1,3 +1,4 @@
+import time
 import uuid
 from decimal import Decimal, ROUND_DOWN
 from bot.other import *
@@ -16,6 +17,7 @@ class OrderService(SingletonBase):
         self.tokenService = TokenService.get_instance()
         self.orderBook = OrderBook.get_instance()
         self.max_order_qty = 50
+        self.min_order_qty = 0.05
 
     def generate_order_id(self) -> str:
         return str(uuid.uuid4())
@@ -37,13 +39,17 @@ class OrderService(SingletonBase):
 
         qty_float = float(qty)
         while qty_float > self.max_order_qty:
+            time.sleep(0.15)
             order_id = self._buy_order(pair, str(self.max_order_qty), price)
             qty_float -= self.max_order_qty
             if not order_id:
                 return
-        self._buy_order(pair, str(qty_float), price)
+        if qty_float > self.min_order_qty:
+            self._buy_order(pair, str(qty_float), price)
 
     def _buy_order(self, pair: CurrencyPair, qty: str, price: str) -> str | None:
+        if float(qty) < self.min_order_qty:
+            return
         best_ask = Decimal(self.tokenService.ticker_data[pair.value].best_ask)
         if Decimal(price) >= best_ask:
             LOGGER.info(f"Buy price at or above above best ask {best_ask} at {price}")
@@ -89,21 +95,18 @@ class OrderService(SingletonBase):
 
         qty_float = float(qty)
         while qty_float > self.max_order_qty:
+            time.sleep(0.15)
             order_id = self._sell_order(pair, str(self.max_order_qty), price)
             qty_float -= self.max_order_qty
             if not order_id:
                 return
-        self._sell_order(pair, str(qty_float), price)
+        if qty_float > self.min_order_qty:
+            self._sell_order(pair, str(qty_float), price)
 
     def _sell_order(self, pair: CurrencyPair, qty: str, price: str) -> str | None:
+        if float(qty) < self.min_order_qty:
+            return
         best_bid = Decimal(self.tokenService.ticker_data[pair.value].best_bid)
-        best_ask = Decimal(self.tokenService.ticker_data[pair.value].best_ask)
-
-        if best_ask < Decimal(".9999") and price == self.config[pair].sell_range.end:
-            LOGGER.info(
-                f"Best ask below .9999 and buy price it at end of range, converting highest sell price to .9998"
-            )
-            price = ".9998"
 
         if Decimal(price) <= best_bid:
             LOGGER.info(f"Sell price at or below best bid {best_bid} at {price}")
