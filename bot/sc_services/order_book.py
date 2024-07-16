@@ -11,11 +11,9 @@ from typing import Dict
 
 class OrderBook(SingletonBase):
     def __init__(self):
-        # orders[pair][side][price][order_id] = amount
         self.orders: Dict[str, Dict[str, Dict[str, Dict[str, str]]]] = defaultdict(
             lambda: defaultdict(lambda: defaultdict(dict))
         )
-        # order_lookup[order_id] = (pair, side, price)
         self.order_lookup: Dict[str, Tuple[str, str, str]] = {}
         self.thread_lock = threading.Lock()
         self.fileUtil = FileUtil.get_instance()
@@ -52,27 +50,16 @@ class OrderBook(SingletonBase):
         with self.thread_lock:
             self.orders[pair.value][side.value][price] = {}
 
-    def add_prices(
-        self, pair: CurrencyPair, side: OrderSide, prices: List[str]
-    ) -> None:
+    def add_prices(self, pair: CurrencyPair, side: OrderSide, prices: List[str]) -> None:
         for price in prices:
             self.add_price(pair, side, price)
 
-    def update_order(
-        self,
-        pair: CurrencyPair,
-        side: OrderSide,
-        price: str,
-        order_id: str,
-        amt: str,
-    ) -> None:
+    def update_order(self, pair: CurrencyPair,side: OrderSide,price: str,order_id: str,amt: str,) -> None:
         with self.thread_lock:
             self.order_lookup.update({order_id: (pair.value, side.value, price)})
             self.orders[pair.value][side.value][price][order_id] = amt
 
-    def delete_order(
-        self, pair: CurrencyPair, side: OrderSide, price: str, order_id: str
-    ) -> None:
+    def delete_order(self, pair: CurrencyPair, side: OrderSide, price: str, order_id: str) -> None:
         if order_id in self.orders[pair.value][side.value][price]:
             with self.thread_lock:
                 del self.orders[pair.value][side.value][price][order_id]
@@ -87,9 +74,7 @@ class OrderBook(SingletonBase):
                     return True
         return False
 
-    def get_prices_with_lowest_amount(
-        self, pair: CurrencyPair, side: OrderSide, maxSize=10
-    ) -> List[str]:
+    def get_prices_with_lowest_amount(self, pair: CurrencyPair, side: OrderSide, maxSize=10) -> List[str]:
         prices_with_min_amount = []
         min_amount = Decimal("Infinity")
 
@@ -116,13 +101,7 @@ class OrderBook(SingletonBase):
 
         return [str(price) for price in prices_with_min_amount[:maxSize]]
 
-    def get_top_orders(
-        self,
-        pair: CurrencyPair,
-        side: OrderSide,
-        num_ids: int,
-        smallest_price: bool = True,
-    ) -> List[Tuple[str, Decimal, Decimal]]:
+    def get_top_orders(self,pair: CurrencyPair,side: OrderSide,num_ids: int,smallest_price: bool = True,) -> List[Tuple[str, Decimal, Decimal]]:
         order_list = []
 
         for price, orders in self.orders[pair.value][side.value].items():
@@ -156,20 +135,20 @@ class OrderBook(SingletonBase):
                     number_of_orders = len(orders)
 
                     LOGGER.info(
-                        f"{price}: Total Amount = {total_price_amount}, Number of Orders = {number_of_orders}"
+                        f"{price}: Total Amount: {total_price_amount}, Orders: {number_of_orders}"
                     )
 
                     total_side_amount += total_price_amount
                     total_side_orders += number_of_orders
 
                 LOGGER.info(
-                    f"Total for {side.capitalize()} side: Amount = {total_side_amount}, Orders = {total_side_orders}"
+                    f"Total for {side.capitalize()} side: Amount: {total_side_amount}, Orders: {total_side_orders}"
                 )
 
                 total_token_amount += total_side_amount
                 total_token_orders += total_side_orders
 
             LOGGER.info(
-                f"Total for {token}: Amount = {total_token_amount}, Orders = {total_token_orders}"
+                f"Total for {token}: Amount: {total_token_amount}, Orders: {total_token_orders}"
             )
             LOGGER.info("")

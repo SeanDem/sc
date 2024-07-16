@@ -16,7 +16,7 @@ class OrderService(SingletonBase):
         self.accountService = AccountService.get_instance()
         self.tokenService = TokenService.get_instance()
         self.orderBook = OrderBook.get_instance()
-        self.max_order_qty = 50
+        self.max_order_qty = 10
         self.min_order_qty = 0.05
 
     def generate_order_id(self) -> str:
@@ -27,12 +27,7 @@ class OrderService(SingletonBase):
             Decimal(size).quantize(Decimal("1." + "0" * decimals), rounding=ROUND_DOWN)
         )
 
-    def buy_order(
-        self,
-        pair: CurrencyPair,
-        qty: str,
-        price: str,
-    ) -> str | None:
+    def buy_order(self,pair: CurrencyPair,qty: str,price: str,) -> str | None:
         if Decimal(price) > Decimal(self.config[pair].max_buy_price):
             LOGGER.info(f"Buy price too high for {pair.value} at {price}")
             return
@@ -83,12 +78,7 @@ class OrderService(SingletonBase):
             LOGGER.info(response_dict)
             return None
 
-    def sell_order(
-        self,
-        pair: CurrencyPair,
-        qty: str,
-        price: str,
-    ) -> str | None:
+    def sell_order(self,pair: CurrencyPair,qty: str,price: str, ) -> str | None:
         if Decimal(price) < Decimal(self.config[pair].min_sell_price):
             LOGGER.info(f"Sell price too low for {pair.value} at {price}")
             return

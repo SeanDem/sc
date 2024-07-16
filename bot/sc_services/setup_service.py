@@ -99,9 +99,7 @@ class SetupService(SingletonBase):
                         str(sell_qty),
                     )
 
-    def generate_order_distribution(
-        self, min_val: float, max_val: float, amount: int, skew=None
-    ):
+    def generate_order_distribution(self, min_val: float, max_val: float, amount: int, skew=None):
         x = np.linspace(0, 1, amount)
         if skew is not None:
             factor = skew.factor
@@ -161,7 +159,7 @@ class SetupService(SingletonBase):
     def adjust_precision(self, size: Decimal, decimals=4) -> Decimal:
         return size.quantize(Decimal("1." + "0" * decimals), rounding=ROUND_DOWN)
 
-    def npy_to_list(self, array: np.ndarray):
+    def npy_to_list(self, array: np.ndarray) -> list[str]:
         return [
             str(self.adjust_precision(Decimal(str(price)))) for price in array.tolist()
         ]

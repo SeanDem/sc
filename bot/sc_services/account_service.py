@@ -28,10 +28,7 @@ class AccountService(SingletonBase):
                 return position.available_to_trade_crypto
         return available_to_trade
 
-    def get_token_available_to_trade(
-        self,
-        pair: CurrencyPair,
-    ) -> Decimal:
+    def get_token_available_to_trade(self, pair: CurrencyPair) -> Decimal:
         currency = pair.value.split("-")[0]
         return Decimal(self.get_available_to_trade(currency))
 

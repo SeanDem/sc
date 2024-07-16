@@ -1,0 +1,2 @@
+orders are never cancelling, this is not necessarily a bad thing. IN fact it has resulted in more filled orders if they never cancel.
+I need to tweak how order are distributed if I want to keep orders longer. 

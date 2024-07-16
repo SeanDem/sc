@@ -11,7 +11,7 @@ from bot.keys import api_key, api_secret
 
 
 class CancelService(SingletonBase):
-    def __init__(self):
+    def __init__(self) -> None:
         self.api_client = EnhancedRestClient.get_instance()
         self.orderBook = OrderBook.get_instance()
         self.orders_to_cancel: Set[str] = set()
@@ -67,7 +67,6 @@ class CancelService(SingletonBase):
         ):
             retries += 1
             time.sleep(1)
-            LOGGER.info(f"{len(self.orders_to_cancel)} orders left to cancel")
         if retries == max_retries:
             LOGGER.error(f"Failed to cancel all orders in {max_retries} retries")
             LOGGER.info("Sleeping for additional 15 seconds")
@@ -75,7 +74,7 @@ class CancelService(SingletonBase):
             with self.cancel_lock:
                 self.orders_to_cancel.clear()
         else:
-            LOGGER.info("Selected orders have been cancelled")
+            LOGGER.info("All orders have been cancelled")
 
         LOGGER.info("Sleeping for 15 seconds")
         time.sleep(15)
