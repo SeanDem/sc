@@ -1,4 +1,3 @@
-import threading
 from typing import Set
 from bot.sc_types import *
 from bot.sc_services import *
@@ -10,4 +9,3 @@ class RebalanceService(SingletonBase):
         self.api_client = EnhancedRestClient.get_instance()
         self.orderBook = OrderBook.get_instance()
         self.orders_to_cancel: Set[str] = set()
-        self.cancel_lock = threading.Lock()

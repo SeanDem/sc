@@ -27,7 +27,12 @@ class OrderService(SingletonBase):
             Decimal(size).quantize(Decimal("1." + "0" * decimals), rounding=ROUND_DOWN)
         )
 
-    def buy_order(self,pair: CurrencyPair,qty: str,price: str,) -> str | None:
+    async def buy_order(
+        self,
+        pair: CurrencyPair,
+        qty: str,
+        price: str,
+    ) -> str | None:
         if Decimal(price) > Decimal(self.config[pair].max_buy_price):
             LOGGER.info(f"Buy price too high for {pair.value} at {price}")
             return
@@ -35,14 +40,14 @@ class OrderService(SingletonBase):
         qty_float = float(qty)
         while qty_float > self.max_order_qty:
             time.sleep(0.15)
-            order_id = self._buy_order(pair, str(self.max_order_qty), price)
+            order_id = await self._buy_order(pair, str(self.max_order_qty), price)
             qty_float -= self.max_order_qty
             if not order_id:
                 return
         if qty_float > self.min_order_qty:
-            self._buy_order(pair, str(qty_float), price)
+            await self._buy_order(pair, str(qty_float), price)
 
-    def _buy_order(self, pair: CurrencyPair, qty: str, price: str) -> str | None:
+    async def _buy_order(self, pair: CurrencyPair, qty: str, price: str) -> str | None:
         if float(qty) < self.min_order_qty:
             return
         best_ask = Decimal(self.tokenService.ticker_data[pair.value].best_ask)
@@ -63,7 +68,7 @@ class OrderService(SingletonBase):
             LOGGER.info(
                 f"Buy Limit Order {pair.value}: {adjusted_qty} at {adjusted_price}"
             )
-            self.orderBook.update_order(
+            await self.orderBook.update_order(
                 pair,
                 OrderSide.BUY,
                 adjusted_price,
@@ -78,7 +83,12 @@ class OrderService(SingletonBase):
             LOGGER.info(response_dict)
             return None
 
-    def sell_order(self,pair: CurrencyPair,qty: str,price: str, ) -> str | None:
+    async def sell_order(
+        self,
+        pair: CurrencyPair,
+        qty: str,
+        price: str,
+    ) -> str | None:
         if Decimal(price) < Decimal(self.config[pair].min_sell_price):
             LOGGER.info(f"Sell price too low for {pair.value} at {price}")
             return
@@ -91,9 +101,9 @@ class OrderService(SingletonBase):
             if not order_id:
                 return
         if qty_float > self.min_order_qty:
-            self._sell_order(pair, str(qty_float), price)
+            await self._sell_order(pair, str(qty_float), price)
 
-    def _sell_order(self, pair: CurrencyPair, qty: str, price: str) -> str | None:
+    async def _sell_order(self, pair: CurrencyPair, qty: str, price: str) -> str | None:
         if float(qty) < self.min_order_qty:
             return
         best_bid = Decimal(self.tokenService.ticker_data[pair.value].best_bid)
@@ -115,7 +125,7 @@ class OrderService(SingletonBase):
             LOGGER.info(
                 f"Sell Limit Order {pair.value}: {adjusted_qty} at {adjusted_price}"
             )
-            self.orderBook.update_order(
+            await self.orderBook.update_order(
                 pair, OrderSide.SELL, adjusted_price, response["order_id"], adjusted_qty
             )
             return response["order_id"]

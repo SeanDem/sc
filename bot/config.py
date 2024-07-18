@@ -10,8 +10,8 @@ sc_config: dict[CurrencyPair, CurrencyPairConfig] = {
         "1",
         ".99985",
         ".99985",
-        RangeConfig("0.992", "0.9995", 50, Skew(SkewDirection.END, 2.8)),
-        RangeConfig(".9999", ".9999", 3),
+        RangeConfig("0.988", "0.9995", 50, Skew(SkewDirection.END, 2.8)),
+        RangeConfig(".9999", "1", 3),
     ),
     # CurrencyPair.PAX_USDC: CurrencyPairConfig(
     #     CurrencyPair.PAX_USDC,

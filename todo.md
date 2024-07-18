@@ -1,20 +1,23 @@
 ## IN PROGRESS
 
 ### TODO
-> [!IMPORTANT] 
+
+> [!IMPORTANT]
+>
 > - [ ] convert to asyncio
 > - [ ] better logging buys and sales
+> - [ ] slow and steady bot. Less cancelling
 
 - [ ] compare total orders and orders in my orderbook info / log
 - [ ] add service name to logs
+- [ ] config service
 - [ ] log filled orders
 - [ ] cancel largest orders. Order selection cancel logic service? Newest and largest usually
-- [ ] rename orderbook, orderservice and userOrderService, too close in name
+- [ ] rename orderbook, order service and userOrderService, too close in name
 - [ ] re-orgainize and rename files / services, number of services has grows past current design
 - [ ] rebalance service - logic to keep "total orders" more stable, while keeping order book balanced. also keep oldest orders
 - [ ] robust logic to deal with prolonged below $1 prices
 - [ ] add mechanism to not cancel older orders, those benefit most from time priority
-- [ ] check on threading, we probably need more thread locking
 - [ ] add more error handling
 - [ ] add back other token
 - [ ] add more logging

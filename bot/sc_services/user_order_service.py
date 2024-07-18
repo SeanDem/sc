@@ -1,4 +1,4 @@
-import threading
+import asyncio
 from coinbase.websocket import WSClient
 from bot.keys import api_key, api_secret
 from bot.sc_types import *
@@ -17,11 +17,9 @@ class UserOrdersService(SingletonBase):
         )
 
     def start(self) -> None:
-        thread = threading.Thread(target=self.run_websocket)
-        thread.daemon = True
-        thread.start()
+        asyncio.create_task(self.run_websocket())
 
-    def run_websocket(self):
+    async def run_websocket(self) -> None:
         try:
             self.ws_client.open()
             self.ws_client.subscribe([], ["user", "heartbeats"])
@@ -32,8 +30,7 @@ class UserOrdersService(SingletonBase):
             self.ws_client.close()
 
     def on_open(self) -> None:
-        LOGGER.info("WebSocket is now open!")
-        self.reconnect_attempts = 0
+        LOGGER.info("OrderService WebSocket is now open!")
 
     def on_close(self) -> None:
         LOGGER.info("WebSocket closed")

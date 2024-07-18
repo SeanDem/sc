@@ -5,7 +5,7 @@ import pytest
 
 class TestOrderDistribution:
     def setup_method(self):
-        self.generator = SetupService({}, {}, {}, {}, {})
+        self.generator = SetupService()
 
     def test_even_distribution(self):
         result = self.generator.generate_order_distribution(1.0, 5.0, 5)

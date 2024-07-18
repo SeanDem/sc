@@ -1,7 +1,7 @@
+import asyncio
+from audioop import error
 import numpy as np
 from decimal import ROUND_DOWN, Decimal
-from os import error
-import time
 from typing import LiteralString
 from coinbase.rest import RESTClient
 
@@ -21,23 +21,28 @@ class SetupService(SingletonBase):
         self.orderBook: OrderBook = OrderBook.get_instance()
         self.api_client: RESTClient = EnhancedRestClient.get_instance()
         self.cancelService: CancelService = CancelService.get_instance()
-        self.config = sc_config
+        self.config = sc_config  # TODO convert to service
 
-    def start(self) -> None:
-        self.validate_configs()
-        self.cancelService.cancel_all_orders()
+    async def start(self) -> None:
+        try:
+            self.validate_configs()
+            for pair, config in self.config.items():
+                await self.setup_initial_orders(config)
+        except Exception as e:
+            LOGGER.error(f"Error in start: {e}")
+
+    async def re_balance_All(self) -> None:
         for pair, config in self.config.items():
-            self.setup_initial_orders(config)
+            await self.re_balance_pair(pair)
 
-    def re_balance_All(self) -> None:
-        for pair, config in self.config.items():
-            self.re_balance_pair(pair)
+    async def re_balance_pair(self, pair: CurrencyPair) -> None:
+        try:
+            await self.cancelService.cancel_all_orders(pair)
+            await self.setup_initial_orders(self.config[pair])
+        except Exception as e:
+            LOGGER.error(f"Error in re_balance_pair: {e}")
 
-    def re_balance_pair(self, pair: CurrencyPair) -> None:
-        self.cancelService.cancel_all_orders(pair)
-        self.setup_initial_orders(self.config[pair])
-
-    def setup_initial_orders(self, config: CurrencyPairConfig) -> None:
+    async def setup_initial_orders(self, config: CurrencyPairConfig) -> None:
         LOGGER.info(f"Setting up initial orders for {config.pair.value}...")
         token_amt = Decimal(
             self.accountService.get_token_available_to_trade(config.pair)
@@ -52,7 +57,7 @@ class SetupService(SingletonBase):
             config.buy_range.num_steps,
             config.buy_range.skew,
         )
-        self.orderBook.add_prices(
+        await self.orderBook.add_prices(
             config.pair, OrderSide.BUY, self.npy_to_list(buy_prices)
         )
 
@@ -60,10 +65,12 @@ class SetupService(SingletonBase):
         buy_qty = self.adjust_precision(buy_qty)
         if Decimal(buy_qty) > Decimal(0.05):
             for price in buy_prices:
-                time.sleep(0.2)
-                order_id = self.orderService.buy_order(config.pair, str(buy_qty), price)
+                await asyncio.sleep(0.2)
+                order_id = await self.orderService.buy_order(
+                    config.pair, str(buy_qty), price
+                )
                 if order_id:
-                    self.orderBook.update_order(
+                    await self.orderBook.update_order(
                         config.pair,
                         OrderSide.BUY,
                         price,
@@ -77,7 +84,7 @@ class SetupService(SingletonBase):
             config.sell_range.num_steps,
             config.sell_range.skew,
         )
-        self.orderBook.add_prices(
+        await self.orderBook.add_prices(
             config.pair, OrderSide.SELL, self.npy_to_list(sell_prices)
         )
         sell_qty = token_amt / config.sell_range.num_steps
@@ -86,12 +93,12 @@ class SetupService(SingletonBase):
         LOGGER.info(f"Sell quantity: {sell_qty:.4f}")
         if Decimal(sell_qty) > Decimal(0.05):
             for price in sell_prices:
-                time.sleep(0.2)
-                order_id = self.orderService.sell_order(
+                await asyncio.sleep(0.2)
+                order_id = await self.orderService.sell_order(
                     config.pair, str(sell_qty), price
                 )
                 if order_id:
-                    self.orderBook.update_order(
+                    await self.orderBook.update_order(
                         config.pair,
                         OrderSide.SELL,
                         price,
@@ -99,7 +106,9 @@ class SetupService(SingletonBase):
                         str(sell_qty),
                     )
 
-    def generate_order_distribution(self, min_val: float, max_val: float, amount: int, skew=None):
+    def generate_order_distribution(
+        self, min_val: float, max_val: float, amount: int, skew=None
+    ):
         x = np.linspace(0, 1, amount)
         if skew is not None:
             factor = skew.factor

@@ -1,9 +1,8 @@
+import asyncio
 from decimal import Decimal
 import json
-from threading import Timer
 
 from dacite import from_dict
-from .other.fileutil import FileUtil
 from bot.other.logger import LOGGER
 from bot.sc_services.rest_client import EnhancedRestClient
 from bot.sc_types import *
@@ -19,39 +18,40 @@ class TradingBot:
         self.accountService = AccountService.get_instance()
         self.setupService = SetupService.get_instance()
         self.userOrdersService = UserOrdersService.get_instance(
-            on_message=self.on_message
+            on_message=self.on_message_wrapper
         )
         self.cancelled_orders = set[str]()
         self.orderService = OrderService.get_instance()
         self.orderBook = OrderBook.get_instance()
         self.cancelService = CancelService.get_instance()
-        self.fileUtil = FileUtil.get_instance()
         self.orders_to_refresh = 4
         self.refresh_interval = 600
 
-    def start(self) -> None:
+    async def start(self) -> None:
         try:
+            self.userOrdersService.start()
             self.tokenService.start()
             self.userOrdersService.start()
-            self.setup()
+            self.cancelService.start()
+            await self.setup()
         except Exception as e:
             LOGGER.error(f"Error in start: {e}")
 
-    def setup(self) -> None:
+    async def setup(self) -> None:
         try:
-            self.setupService.start()
-            self.start_order_cancel_scheduler()
-            self.start_available_funds_scheduler()
-            self.start_rebalance_scheduler()
-            self.start_info_scheduler()
+            await self.setupService.start()
+            await self.start_order_cancel_scheduler()
+            await self.start_available_funds_scheduler()
+            await self.start_rebalance_scheduler()
+            await self.start_info_scheduler()
         except Exception as e:
             LOGGER.error(f"Error in setup: {e}")
 
-    def start_info_scheduler(self) -> None:
+    async def start_info_scheduler(self) -> None:
         LOGGER.info("Starting info scheduler")
         interval_seconds = self.refresh_interval * 6
 
-        def print_info() -> None:
+        async def print_info() -> None:
             try:
                 LOGGER.info("Checking info")
                 # TODO move this to service
@@ -67,16 +67,16 @@ class TradingBot:
             except Exception as e:
                 LOGGER.error(f"Error in print_info: {e}")
             finally:
-                Timer(interval_seconds, print_info).start()
+                await self.delayed_execution(interval_seconds, print_info)
 
-        Timer(interval_seconds, print_info).start()
+        await self.delayed_execution(interval_seconds, print_info)
 
-    def start_order_cancel_scheduler(self) -> None:
+    async def start_order_cancel_scheduler(self) -> None:
         LOGGER.info("Starting order cancel scheduler")
         interval_seconds = int(self.refresh_interval * 1.33)
         orders_to_refresh = self.orders_to_refresh // 2
 
-        def cancel_random_order() -> None:
+        async def cancel_random_order() -> None:
             try:
                 LOGGER.info(
                     f"{interval_seconds} seconds have passed, cancelling {self.orders_to_refresh -1} random order(s)"
@@ -86,26 +86,26 @@ class TradingBot:
                     orders_to_refresh,
                 )
                 if buy_order_ids:
-                    self.cancelService.cancel_orders(buy_order_ids)
+                    await self.cancelService.cancel_orders(buy_order_ids)
 
                 sell_order_ids = self.orderBook.get_and_delete_random_orders(
                     OrderSide.SELL,
                     orders_to_refresh,
                 )
                 if sell_order_ids:
-                    self.cancelService.cancel_orders(sell_order_ids)
+                    await self.cancelService.cancel_orders(sell_order_ids)
             except Exception as e:
                 LOGGER.error(f"Error in cancel_random_order: {e}")
             finally:
-                Timer(interval_seconds, cancel_random_order).start()
+                await self.delayed_execution(interval_seconds, cancel_random_order)
 
-        Timer(interval_seconds, cancel_random_order).start()
+        await self.delayed_execution(interval_seconds, cancel_random_order)
 
-    def start_available_funds_scheduler(self) -> None:
+    async def start_available_funds_scheduler(self) -> None:
         LOGGER.info("Starting available funds scheduler")
         interval_seconds = self.refresh_interval
 
-        def check_for_available_funds() -> None:
+        async def check_for_available_funds() -> None:
             try:
                 LOGGER.info(
                     f"{interval_seconds} seconds have passed, checking for available funds"
@@ -117,42 +117,47 @@ class TradingBot:
                 LOGGER.info(f"USDC: {usdc:.4f}\nDAI: {dai:.4f}")
 
                 if usdc > Decimal(self.orders_to_refresh):
-                    self.fill_buy_ladder(CurrencyPair.DAI_USDC, usdc)
+                    await self.fill_buy_ladder(CurrencyPair.DAI_USDC, usdc)
 
                 if dai > Decimal(self.orders_to_refresh):
-                    self.fill_sell_ladder(CurrencyPair.DAI_USDC, dai)
+                    await self.fill_sell_ladder(CurrencyPair.DAI_USDC, dai)
             except Exception as e:
                 LOGGER.error(f"Error in check_for_available_funds: {e}")
             finally:
-                Timer(interval_seconds, check_for_available_funds).start()
+                await self.delayed_execution(
+                    interval_seconds, check_for_available_funds
+                )
 
-        Timer(interval_seconds, check_for_available_funds).start()
+        await self.delayed_execution(interval_seconds, check_for_available_funds)
 
-    def start_rebalance_scheduler(self) -> None:
+    async def start_rebalance_scheduler(self) -> None:
         LOGGER.info("Starting re-balance scheduler")
         time = 3600 * 6  # 6 hours
 
-        def rebalance():
+        async def rebalance():
             try:
                 LOGGER.info(f"{time/60/60} hours have passed, re-balancing all pairs")
-                self.setupService.re_balance_All()
+                await self.setupService.re_balance_All()
             except Exception as e:
                 LOGGER.error(f"Error in rebalance: {e}")
             finally:
-                Timer(time, rebalance).start()
+                await self.delayed_execution(time, rebalance)
 
-        Timer(time, rebalance).start()
+        await self.delayed_execution(time, rebalance)
 
-    def handle_order(self, order: OrderEvent) -> None:
+    async def handle_order(self, order: OrderEvent) -> None:
         if order.status in (
             OrderStatus.FILLED.value,
             OrderStatus.CANCELLED.value,
             OrderStatus.EXPIRED.value,
             OrderStatus.FAILED.value,
         ):
-            self.orderBook.delete_order_by_id(order.order_id)
+            await self.orderBook.delete_order_by_id(order.order_id)
 
-    def on_message(self, msg: str) -> None:
+    def on_message_wrapper(self, msg: str) -> None:
+        asyncio.create_task(self.on_message_async(msg))
+
+    async def on_message_async(self, msg: str) -> None:
         try:
             data = json.loads(msg)
             if (
@@ -167,11 +172,13 @@ class TradingBot:
                 return
 
             for order_event in event.events[0].orders or []:
-                self.handle_order(order_event)
+                await self.handle_order(order_event)
         except Exception as e:
             LOGGER.error(f"Error in on_message: {e}")
 
-    def fill_ladder(self, pair: CurrencyPair, amount: Decimal, side: OrderSide) -> None:
+    async def fill_ladder(
+        self, pair: CurrencyPair, amount: Decimal, side: OrderSide
+    ) -> None:
         try:
             LOGGER.info(
                 f"Filling {side.value} ladder for {pair.value} with {amount:.4f}"
@@ -185,9 +192,13 @@ class TradingBot:
                 order_amount = abs(Decimal(amount)) / len(prices)
                 for price in prices:
                     if side == OrderSide.BUY:
-                        self.orderService.buy_order(pair, str(order_amount), price)
+                        await self.orderService.buy_order(
+                            pair, str(order_amount), price
+                        )
                     else:
-                        self.orderService.sell_order(pair, str(order_amount), price)
+                        await self.orderService.sell_order(
+                            pair, str(order_amount), price
+                        )
 
             else:
                 LOGGER.info(f"No {side.value} prices available for {pair.value}")
@@ -195,8 +206,12 @@ class TradingBot:
         except Exception as e:
             LOGGER.error(f"Error in fill_ladder: {e}")
 
-    def fill_buy_ladder(self, pair: CurrencyPair, amount: Decimal) -> None:
-        self.fill_ladder(pair, amount, OrderSide.BUY)
+    async def fill_buy_ladder(self, pair: CurrencyPair, amount: Decimal) -> None:
+        await self.fill_ladder(pair, amount, OrderSide.BUY)
 
-    def fill_sell_ladder(self, pair: CurrencyPair, amount: Decimal) -> None:
-        self.fill_ladder(pair, amount, OrderSide.SELL)
+    async def fill_sell_ladder(self, pair: CurrencyPair, amount: Decimal) -> None:
+        await self.fill_ladder(pair, amount, OrderSide.SELL)
+
+    async def delayed_execution(self, interval_seconds, coro, *args, **kwargs):
+        await asyncio.sleep(delay=interval_seconds)
+        return asyncio.create_task(coro(*args, **kwargs))

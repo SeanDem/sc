@@ -1,6 +1,5 @@
+import asyncio
 import json
-import threading
-import time
 from coinbase.websocket import WSClient
 from typing import Set
 from dacite import from_dict
@@ -15,23 +14,32 @@ class CancelService(SingletonBase):
         self.api_client = EnhancedRestClient.get_instance()
         self.orderBook = OrderBook.get_instance()
         self.orders_to_cancel: Set[str] = set()
-        self.cancel_lock = threading.Lock()
-        self.init_websocket()
+        self.cancel_lock = asyncio.Lock()
 
-    def init_websocket(self) -> None:
+    def start(self) -> None:
+        LOGGER.info("Starting CancelService")
+        asyncio.create_task(self.init_websocket())
+
+    async def init_websocket(self) -> None:
         self.ws_client = WSClient(
-            api_key=api_key, api_secret=api_secret, on_message=self.on_message
+            api_key=api_key, api_secret=api_secret, on_message=self.on_message_wrapper
         )
-        self.ws_thread = threading.Thread(target=self.run_websocket)
-        self.ws_thread.daemon = True
-        self.ws_thread.start()
+        await self.run_websocket()
 
-    def run_websocket(self) -> None:
-        self.ws_client.open()
-        self.ws_client.subscribe([], ["user", "heartbeats"])
-        self.ws_client.run_forever_with_exception_check()
+    async def run_websocket(self) -> None:
+        try:
+            await self.ws_client.open_async()
+            await self.ws_client.subscribe_async([], ["user", "heartbeats"])
+            await self.ws_client.run_forever_with_exception_check_async()
+        except Exception as e:
+            LOGGER.info(f"CANCEL_SERVICE ERROR: {e}")
+        finally:
+            await self.ws_client.close_async()
 
-    def on_message(self, msg: str) -> None:
+    def on_message_wrapper(self, msg: str) -> None:
+        asyncio.create_task(self.on_message_async(msg))
+
+    async def on_message_async(self, msg: str) -> None:
         data = json.loads(msg)
         if data["channel"] == "heartbeats":
             return
@@ -39,26 +47,26 @@ class CancelService(SingletonBase):
         for event in message.events:
             for order in event.orders or []:
                 if order.status == "CANCELLED":
-                    with self.cancel_lock:
+                    async with self.cancel_lock:
                         if order.order_id in self.orders_to_cancel:
                             self.orders_to_cancel.remove(order.order_id)
-                            self.orderBook.delete_order_by_id(order.order_id)
+                            await self.orderBook.delete_order_by_id(order.order_id)
                             print(
                                 f"Order {order.order_id} has been cancelled and removed from the set"
                             )
 
-    def cancel_orders(self, order_ids: list[str]) -> None:
+    async def cancel_orders(self, order_ids: list[str]) -> None:
         if not order_ids:
             return
         LOGGER.info(f"Cancelling {len(order_ids)} orders")
-        with self.cancel_lock:
+        async with self.cancel_lock:
             self.orders_to_cancel.update(order_ids)
         for i in range(0, len(order_ids), 100):
             LOGGER.info(f"Attempting to cancel orders {order_ids[i:i+100]}")
             self.api_client.cancel_orders(order_ids[i : i + 100])
-        self.wait_for_cancellation(order_ids)
+        await self.wait_for_cancellation(order_ids)
 
-    def wait_for_cancellation(self, order_ids) -> None:
+    async def wait_for_cancellation(self, order_ids) -> None:
         max_retries = 10
         retries = 0
         while (
@@ -66,20 +74,18 @@ class CancelService(SingletonBase):
             and retries < max_retries
         ):
             retries += 1
-            time.sleep(1)
+            await asyncio.sleep(15)
         if retries == max_retries:
             LOGGER.error(f"Failed to cancel all orders in {max_retries} retries")
-            LOGGER.info("Sleeping for additional 15 seconds")
-            time.sleep(15)
-            with self.cancel_lock:
+            async with self.cancel_lock:
                 self.orders_to_cancel.clear()
         else:
             LOGGER.info("All orders have been cancelled")
 
         LOGGER.info("Sleeping for 15 seconds")
-        time.sleep(15)
+        await asyncio.sleep(15)
 
-    def cancel_all_orders(self, pair: CurrencyPair | None = None) -> None:
+    async def cancel_all_orders(self, pair: CurrencyPair | None = None) -> None:
         LOGGER.info("Cancelling all orders")
         data = []
         if pair:
@@ -89,4 +95,4 @@ class CancelService(SingletonBase):
 
         orders = from_dict(AllOrdersList, data)
         order_ids = [order.order_id for order in orders.orders]
-        self.cancel_orders(order_ids)
+        await self.cancel_orders(order_ids)

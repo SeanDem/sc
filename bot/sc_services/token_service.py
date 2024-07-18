@@ -1,5 +1,5 @@
+import asyncio
 import json
-import threading
 
 from dacite import from_dict
 from bot.other import *
@@ -15,35 +15,37 @@ class TokenService(SingletonBase):
         self.ws = WSClient(
             api_key=api_key,
             api_secret=api_secret,
-            on_message=self.on_message,
+            on_message=self.on_message_wrapper,
             on_open=self.on_open,
             on_close=self.on_close,
         )
         self.config = sc_config
         self.ticker_data: dict[str, TickerEvent] = {}
 
-    def start(self) -> None:
-        thread = threading.Thread(target=self.run_websocket)
-        thread.daemon = True
-        thread.start()
-
-    def run_websocket(self):
+    async def run_websocket(self) -> None:
         try:
-            self.ws.open()
-            self.ws.subscribe(
-                ["DAI-USD"],
+            await self.ws.open_async()
+            await self.ws.subscribe_async(
+                ["DAI-USD"],  # TODO pair input
                 [
                     "ticker",
                     "heartbeats",
                 ],
             )
-            self.ws.run_forever_with_exception_check()
+            await self.ws.run_forever_with_exception_check_async()
         except Exception as e:
             LOGGER.info(f"TOKEN_SERVICE ERROR: {e}")
         finally:
-            self.ws.close()
+            await self.ws.close_async()
 
-    def on_message(self, msg: str) -> None:
+    def start(self) -> None:
+        LOGGER.info("Starting TokenService")
+        asyncio.create_task(self.run_websocket())
+
+    def on_message_wrapper(self, msg: str) -> None:
+        asyncio.create_task(self.on_message_async(msg))
+
+    async def on_message_async(self, msg: str) -> None:
         data = json.loads(msg)
         if data["channel"] == "heartbeats":
             return
@@ -53,7 +55,7 @@ class TokenService(SingletonBase):
             self.ticker_data[ticker.product_id] = ticker
 
     def on_open(self) -> None:
-        LOGGER.info("WebSocket is now open!")
+        LOGGER.info("TokenService Websocket is now open!")
 
     def on_close(self) -> None:
         LOGGER.info("WebSocket closed")

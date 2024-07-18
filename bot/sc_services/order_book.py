@@ -1,7 +1,7 @@
+import asyncio
 from collections import defaultdict
 from decimal import Decimal
 import random
-import threading
 from typing import Dict, List, Tuple
 from bot.other import *
 from bot.sc_services import *
@@ -15,8 +15,7 @@ class OrderBook(SingletonBase):
             lambda: defaultdict(lambda: defaultdict(dict))
         )
         self.order_lookup: Dict[str, Tuple[str, str, str]] = {}
-        self.thread_lock = threading.Lock()
-        self.fileUtil = FileUtil.get_instance()
+        self.lock = asyncio.Lock()
 
     def get_random_order_id(self, side: OrderSide) -> str:
         attempts = len(self.order_lookup)
@@ -28,14 +27,14 @@ class OrderBook(SingletonBase):
         LOGGER.warning("No orders of the specified side in order book")
         return ""
 
-    def get_and_delete_random_order(self, side: OrderSide) -> str:
+    async def get_and_delete_random_order(self, side: OrderSide) -> str:
         random_order_id = self.get_random_order_id(side)
         if random_order_id:
-            self.delete_order_by_id(random_order_id)
+            await self.delete_order_by_id(random_order_id)
         return random_order_id
 
     def get_and_delete_random_orders(self, side: OrderSide, amount=2) -> List[str]:
-        # TODO maybe add token as parameter
+        # TODO add token as parameter
         orders = []
         for _ in range(amount):
             random_order_id = self.get_and_delete_random_order(side)
@@ -46,26 +45,38 @@ class OrderBook(SingletonBase):
                 break
         return orders
 
-    def add_price(self, pair: CurrencyPair, side: OrderSide, price: str) -> None:
-        with self.thread_lock:
+    async def add_price(self, pair: CurrencyPair, side: OrderSide, price: str) -> None:
+        async with self.lock:
             self.orders[pair.value][side.value][price] = {}
 
-    def add_prices(self, pair: CurrencyPair, side: OrderSide, prices: List[str]) -> None:
+    async def add_prices(
+        self, pair: CurrencyPair, side: OrderSide, prices: List[str]
+    ) -> None:
         for price in prices:
-            self.add_price(pair, side, price)
+            print(f"Adding price {price}")
+            await self.add_price(pair, side, price)
 
-    def update_order(self, pair: CurrencyPair,side: OrderSide,price: str,order_id: str,amt: str,) -> None:
-        with self.thread_lock:
+    async def update_order(
+        self,
+        pair: CurrencyPair,
+        side: OrderSide,
+        price: str,
+        order_id: str,
+        amt: str,
+    ) -> None:
+        async with self.lock:
             self.order_lookup.update({order_id: (pair.value, side.value, price)})
             self.orders[pair.value][side.value][price][order_id] = amt
 
-    def delete_order(self, pair: CurrencyPair, side: OrderSide, price: str, order_id: str) -> None:
+    async def delete_order(
+        self, pair: CurrencyPair, side: OrderSide, price: str, order_id: str
+    ) -> None:
         if order_id in self.orders[pair.value][side.value][price]:
-            with self.thread_lock:
+            async with self.lock:
                 del self.orders[pair.value][side.value][price][order_id]
 
-    def delete_order_by_id(self, order_id: str) -> bool:
-        with self.thread_lock:
+    async def delete_order_by_id(self, order_id: str) -> bool:
+        async with self.lock:
             if order_id in self.order_lookup:
                 pair, side, price = self.order_lookup[order_id]
                 if order_id in self.orders.get(pair, {}).get(side, {}).get(price, {}):
@@ -74,7 +85,9 @@ class OrderBook(SingletonBase):
                     return True
         return False
 
-    def get_prices_with_lowest_amount(self, pair: CurrencyPair, side: OrderSide, maxSize=10) -> List[str]:
+    def get_prices_with_lowest_amount(
+        self, pair: CurrencyPair, side: OrderSide, maxSize=10
+    ) -> List[str]:
         prices_with_min_amount = []
         min_amount = Decimal("Infinity")
 
@@ -101,7 +114,13 @@ class OrderBook(SingletonBase):
 
         return [str(price) for price in prices_with_min_amount[:maxSize]]
 
-    def get_top_orders(self,pair: CurrencyPair,side: OrderSide,num_ids: int,smallest_price: bool = True,) -> List[Tuple[str, Decimal, Decimal]]:
+    def get_top_orders(
+        self,
+        pair: CurrencyPair,
+        side: OrderSide,
+        num_ids: int,
+        smallest_price: bool = True,
+    ) -> List[Tuple[str, Decimal, Decimal]]:
         order_list = []
 
         for price, orders in self.orders[pair.value][side.value].items():
