@@ -35,21 +35,18 @@ class TokenService(SingletonBase):
             await self.ws.run_forever_with_exception_check_async()
         except Exception as e:
             LOGGER.info(f"TOKEN_SERVICE ERROR: {e}")
-        finally:
-            await self.ws.close_async()
 
     def start(self) -> None:
         LOGGER.info("Starting TokenService")
-        asyncio.create_task(self.run_websocket())
+        task = asyncio.create_task(self.run_websocket())
 
     def on_message_wrapper(self, msg: str) -> None:
-        asyncio.create_task(self.on_message_async(msg))
+        if json.loads(msg)["channel"] == "heartbeats":
+            return
+        task = asyncio.create_task(self.on_message_async(msg))
 
     async def on_message_async(self, msg: str) -> None:
-        data = json.loads(msg)
-        if data["channel"] == "heartbeats":
-            return
-        data = from_dict(WS_Message, data)
+        data = from_dict(WS_Message, json.loads(msg))
         for ticker in data.events[0].tickers or []:
             ticker.product_id = self.USDC_NORMALIZER(ticker.product_id)
             self.ticker_data[ticker.product_id] = ticker

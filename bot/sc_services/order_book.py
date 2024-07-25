@@ -53,7 +53,6 @@ class OrderBook(SingletonBase):
         self, pair: CurrencyPair, side: OrderSide, prices: List[str]
     ) -> None:
         for price in prices:
-            print(f"Adding price {price}")
             await self.add_price(pair, side, price)
 
     async def update_order(

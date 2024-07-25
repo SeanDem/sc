@@ -1,9 +1,8 @@
 import asyncio
-from audioop import error
-import numpy as np
 from decimal import ROUND_DOWN, Decimal
 from typing import LiteralString
 from coinbase.rest import RESTClient
+import numpy as np
 
 from bot.other.logger import LOGGER
 from bot.other.singleton_base import SingletonBase
@@ -26,6 +25,7 @@ class SetupService(SingletonBase):
     async def start(self) -> None:
         try:
             self.validate_configs()
+            await self.cancelService.cancel_all_orders()
             for pair, config in self.config.items():
                 await self.setup_initial_orders(config)
         except Exception as e:
@@ -64,11 +64,13 @@ class SetupService(SingletonBase):
         buy_qty: Decimal = usdc_available / config.buy_range.num_steps
         buy_qty = self.adjust_precision(buy_qty)
         if Decimal(buy_qty) > Decimal(0.05):
+            print(buy_qty)
             for price in buy_prices:
                 await asyncio.sleep(0.2)
                 order_id = await self.orderService.buy_order(
                     config.pair, str(buy_qty), price
                 )
+                print(order_id)
                 if order_id:
                     await self.orderBook.update_order(
                         config.pair,
@@ -78,19 +80,21 @@ class SetupService(SingletonBase):
                         str(buy_qty),
                     )
 
-        sell_prices = self.generate_order_distribution(
-            float(config.sell_range.start),
-            float(config.sell_range.end),
-            config.sell_range.num_steps,
-            config.sell_range.skew,
-        )
-        await self.orderBook.add_prices(
-            config.pair, OrderSide.SELL, self.npy_to_list(sell_prices)
-        )
+        if config.sell_range.start == config.sell_range.end:
+            sell_prices = [config.sell_range.start]
+        else:
+            sell_prices = self.generate_order_distribution(
+                float(config.sell_range.start),
+                float(config.sell_range.end),
+                config.sell_range.num_steps,
+                config.sell_range.skew,
+            )
+            sell_prices = self.npy_to_list(sell_prices)
+
+        await self.orderBook.add_prices(config.pair, OrderSide.SELL, sell_prices)
+
         sell_qty = token_amt / config.sell_range.num_steps
         sell_qty = self.adjust_precision(sell_qty)
-        LOGGER.info(f"Token amount: {token_amt:.4f}")
-        LOGGER.info(f"Sell quantity: {sell_qty:.4f}")
         if Decimal(sell_qty) > Decimal(0.05):
             for price in sell_prices:
                 await asyncio.sleep(0.2)
@@ -145,13 +149,13 @@ class SetupService(SingletonBase):
                 sell_start = Decimal(settings.sell_range.start)
                 sell_end = Decimal(settings.sell_range.end)
 
-                if not (buy_start < buy_end):
+                if not (buy_start <= buy_end):
                     errors.append(
-                        f"{pair}: Buy range start {settings.buy_range.start} should be less than end {settings.buy_range.end}."
+                        f"{pair}: Buy range start {settings.buy_range.start} should be less then or equal to end {settings.buy_range.end}."
                     )
-                if not (sell_start < sell_end):
+                if not (sell_start <= sell_end):
                     errors.append(
-                        f"{pair}: Sell range start {settings.sell_range.start} should be less than end {settings.sell_range.end}."
+                        f"{pair}: Sell range start {settings.sell_range.start} should be then or equal to end {settings.sell_range.end}."
                     )
             except:
                 errors.append(f"{pair}: Invalid range values.")
@@ -161,7 +165,7 @@ class SetupService(SingletonBase):
             )
         if errors:
             LOGGER.info("Errors found in configurations:")
-            raise error("\n".join(errors))
+            raise ValueError("\n".join(errors))
         else:
             LOGGER.info("All configurations are logically sound.")
 

@@ -15,16 +15,17 @@ class CancelService(SingletonBase):
         self.orderBook = OrderBook.get_instance()
         self.orders_to_cancel: Set[str] = set()
         self.cancel_lock = asyncio.Lock()
+        self.ws_client = WSClient(
+            api_key=api_key,
+            api_secret=api_secret,
+            on_message=self.on_message_wrapper,
+            on_open=self.on_open,
+            on_close=self.on_close,
+        )
 
     def start(self) -> None:
         LOGGER.info("Starting CancelService")
-        asyncio.create_task(self.init_websocket())
-
-    async def init_websocket(self) -> None:
-        self.ws_client = WSClient(
-            api_key=api_key, api_secret=api_secret, on_message=self.on_message_wrapper
-        )
-        await self.run_websocket()
+        task = asyncio.create_task(self.run_websocket())
 
     async def run_websocket(self) -> None:
         try:
@@ -33,11 +34,9 @@ class CancelService(SingletonBase):
             await self.ws_client.run_forever_with_exception_check_async()
         except Exception as e:
             LOGGER.info(f"CANCEL_SERVICE ERROR: {e}")
-        finally:
-            await self.ws_client.close_async()
 
     def on_message_wrapper(self, msg: str) -> None:
-        asyncio.create_task(self.on_message_async(msg))
+        task = asyncio.create_task(self.on_message_async(msg))
 
     async def on_message_async(self, msg: str) -> None:
         data = json.loads(msg)
@@ -51,7 +50,7 @@ class CancelService(SingletonBase):
                         if order.order_id in self.orders_to_cancel:
                             self.orders_to_cancel.remove(order.order_id)
                             await self.orderBook.delete_order_by_id(order.order_id)
-                            print(
+                            LOGGER.info(
                                 f"Order {order.order_id} has been cancelled and removed from the set"
                             )
 
@@ -96,3 +95,9 @@ class CancelService(SingletonBase):
         orders = from_dict(AllOrdersList, data)
         order_ids = [order.order_id for order in orders.orders]
         await self.cancel_orders(order_ids)
+
+    def on_open(self) -> None:
+        LOGGER.info("CancelService WebSocket is now open!")
+
+    def on_close(self) -> None:
+        LOGGER.info("CancelService WebSocket is closed")

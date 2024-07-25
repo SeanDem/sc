@@ -1,4 +1,4 @@
-import time
+import asyncio
 import uuid
 from decimal import Decimal, ROUND_DOWN
 from bot.other import *
@@ -39,7 +39,7 @@ class OrderService(SingletonBase):
 
         qty_float = float(qty)
         while qty_float > self.max_order_qty:
-            time.sleep(0.15)
+            await asyncio.sleep(15)
             order_id = await self._buy_order(pair, str(self.max_order_qty), price)
             qty_float -= self.max_order_qty
             if not order_id:
@@ -95,8 +95,8 @@ class OrderService(SingletonBase):
 
         qty_float = float(qty)
         while qty_float > self.max_order_qty:
-            time.sleep(0.15)
-            order_id = self._sell_order(pair, str(self.max_order_qty), price)
+            await asyncio.sleep(0.15)
+            order_id = await self._sell_order(pair, str(self.max_order_qty), price)
             qty_float -= self.max_order_qty
             if not order_id:
                 return

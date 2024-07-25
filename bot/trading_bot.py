@@ -29,21 +29,22 @@ class TradingBot:
 
     async def start(self) -> None:
         try:
-            self.userOrdersService.start()
+            self.cancelService.start()
             self.tokenService.start()
             self.userOrdersService.start()
-            self.cancelService.start()
-            await self.setup()
+            self.start_Schedulers()
+            await self.setupService.start()
+            await asyncio.Event().wait()
         except Exception as e:
             LOGGER.error(f"Error in start: {e}")
 
-    async def setup(self) -> None:
+    def start_Schedulers(self) -> None:
         try:
-            await self.setupService.start()
-            await self.start_order_cancel_scheduler()
-            await self.start_available_funds_scheduler()
-            await self.start_rebalance_scheduler()
-            await self.start_info_scheduler()
+            task_info = asyncio.create_task(self.start_info_scheduler())
+            task_cancel = asyncio.create_task(self.start_order_cancel_scheduler())
+            task_funds = asyncio.create_task(self.start_available_funds_scheduler())
+            task_rebalance = asyncio.create_task(self.start_rebalance_scheduler())
+            # asyncio.gather(task_info, task_cancel, task_funds, task_rebalance)
         except Exception as e:
             LOGGER.error(f"Error in setup: {e}")
 
@@ -155,7 +156,7 @@ class TradingBot:
             await self.orderBook.delete_order_by_id(order.order_id)
 
     def on_message_wrapper(self, msg: str) -> None:
-        asyncio.create_task(self.on_message_async(msg))
+        task = asyncio.create_task(self.on_message_async(msg))
 
     async def on_message_async(self, msg: str) -> None:
         try:
@@ -213,5 +214,5 @@ class TradingBot:
         await self.fill_ladder(pair, amount, OrderSide.SELL)
 
     async def delayed_execution(self, interval_seconds, coro, *args, **kwargs):
-        await asyncio.sleep(delay=interval_seconds)
-        return asyncio.create_task(coro(*args, **kwargs))
+        await asyncio.sleep(interval_seconds)
+        await coro(*args, **kwargs)

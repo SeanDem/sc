@@ -17,20 +17,18 @@ class UserOrdersService(SingletonBase):
         )
 
     def start(self) -> None:
-        asyncio.create_task(self.run_websocket())
+        task = asyncio.create_task(self.run_websocket())
 
     async def run_websocket(self) -> None:
         try:
-            self.ws_client.open()
-            self.ws_client.subscribe([], ["user", "heartbeats"])
-            self.ws_client.run_forever_with_exception_check()
+            await self.ws_client.open_async()
+            await self.ws_client.subscribe_async([], ["user", "heartbeats"])
+            await self.ws_client.run_forever_with_exception_check_async()
         except Exception as e:
             LOGGER.info(f"ORDER_SERVICE error: {e}")
-        finally:
-            self.ws_client.close()
 
     def on_open(self) -> None:
-        LOGGER.info("OrderService WebSocket is now open!")
+        LOGGER.info("UserOrders WebSocket is now open!")
 
     def on_close(self) -> None:
         LOGGER.info("WebSocket closed")
