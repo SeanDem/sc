@@ -73,7 +73,7 @@ class CancelService(SingletonBase):
             and retries < max_retries
         ):
             retries += 1
-            await asyncio.sleep(15)
+            await asyncio.sleep(1)
         if retries == max_retries:
             LOGGER.error(f"Failed to cancel all orders in {max_retries} retries")
             async with self.cancel_lock:

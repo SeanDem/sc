@@ -82,14 +82,14 @@ class TradingBot:
                 LOGGER.info(
                     f"{interval_seconds} seconds have passed, cancelling {self.orders_to_refresh -1} random order(s)"
                 )
-                buy_order_ids = self.orderBook.get_and_delete_random_orders(
+                buy_order_ids = await self.orderBook.get_and_delete_random_orders(
                     OrderSide.BUY,
                     orders_to_refresh,
                 )
                 if buy_order_ids:
                     await self.cancelService.cancel_orders(buy_order_ids)
 
-                sell_order_ids = self.orderBook.get_and_delete_random_orders(
+                sell_order_ids = await self.orderBook.get_and_delete_random_orders(
                     OrderSide.SELL,
                     orders_to_refresh,
                 )

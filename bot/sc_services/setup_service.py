@@ -61,7 +61,11 @@ class SetupService(SingletonBase):
             config.pair, OrderSide.BUY, self.npy_to_list(buy_prices)
         )
 
-        buy_qty: Decimal = usdc_available / config.buy_range.num_steps
+        buy_qty: Decimal = (
+            usdc_available / config.buy_range.num_steps
+            if config.buy_range.num_steps != 0
+            else Decimal(1)
+        )
         buy_qty = self.adjust_precision(buy_qty)
         if Decimal(buy_qty) > Decimal(0.05):
             print(buy_qty)
@@ -79,9 +83,9 @@ class SetupService(SingletonBase):
                         order_id,
                         str(buy_qty),
                     )
-
         if config.sell_range.start == config.sell_range.end:
             sell_prices = [config.sell_range.start]
+            config.sell_range.num_steps = 1
         else:
             sell_prices = self.generate_order_distribution(
                 float(config.sell_range.start),
@@ -93,7 +97,12 @@ class SetupService(SingletonBase):
 
         await self.orderBook.add_prices(config.pair, OrderSide.SELL, sell_prices)
 
-        sell_qty = token_amt / config.sell_range.num_steps
+        sell_qty = (
+            token_amt / config.sell_range.num_steps
+            if config.sell_range.num_steps != 0
+            else Decimal(1)
+        )
+
         sell_qty = self.adjust_precision(sell_qty)
         if Decimal(sell_qty) > Decimal(0.05):
             for price in sell_prices:

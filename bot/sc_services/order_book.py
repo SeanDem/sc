@@ -33,11 +33,11 @@ class OrderBook(SingletonBase):
             await self.delete_order_by_id(random_order_id)
         return random_order_id
 
-    def get_and_delete_random_orders(self, side: OrderSide, amount=2) -> List[str]:
+    async def get_and_delete_random_orders(self, side: OrderSide, amount=2) -> List[str]:
         # TODO add token as parameter
         orders = []
         for _ in range(amount):
-            random_order_id = self.get_and_delete_random_order(side)
+            random_order_id = await self.get_and_delete_random_order(side)
             if random_order_id:
                 orders.append(random_order_id)
             else:
